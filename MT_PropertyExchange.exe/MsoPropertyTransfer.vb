@@ -65,8 +65,9 @@ Module MsoPropertyTransfer
         End If
 
         If args.IsTrue("interactive") OrElse args.Count = 0 OrElse args.Count = 1 AndAlso splitCommandLine(0).ToLower.Contains(Reflection.Assembly.GetExecutingAssembly.ManifestModule.Name.ToLower) Then
-            Dim dlg = New Interactivity
-            dlg.ShowDialog()
+            ' The interactive WinForms dialog (Interactivity.vb) was lost from the
+            ' code base; without arguments the command line help is shown instead.
+            Console.Write(My.Resources.help.ToString())
             End
         End If
 

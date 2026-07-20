@@ -12,7 +12,10 @@
     <AssemblyName>PropertyExchange</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <MyType>Console</MyType>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <!-- AnyCPU must run as a 64-bit process on 64-bit Windows so that the
+         64-bit dsofile.dll COM server is used. -->
+    <Prefer32Bit>false</Prefer32Bit>
     <OptionExplicit>On</OptionExplicit>
     <OptionCompare>Binary</OptionCompare>
     <OptionStrict>Off</OptionStrict>
@@ -104,10 +107,6 @@
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="log4net, Version=1.2.11.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\lib\log4net.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Office.Interop.Excel, Version=11.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c">
       <SpecificVersion>False</SpecificVersion>
       <Private>True</Private>
@@ -144,12 +143,9 @@
     <Import Include="System.Linq" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Interactivity.Designer.vb">
-      <DependentUpon>Interactivity.vb</DependentUpon>
-    </Compile>
-    <Compile Include="Interactivity.vb">
-      <SubType>Form</SubType>
-    </Compile>
+    <!-- Interactivity.vb (interactive WinForms dialog) is not part of the
+         repository anymore; running the exe without arguments prints the
+         command line help instead (see MsoPropertyTransfer.vb). -->
     <Compile Include="MsoPropertyTransfer.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
@@ -168,9 +164,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Interactivity.resx">
-      <DependentUpon>Interactivity.vb</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="My Project\Resources.resx">
       <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.vb</LastGenOutput>
@@ -188,9 +181,6 @@
       <Generator>MyApplicationCodeGenerator</Generator>
       <LastGenOutput>Application.Designer.vb</LastGenOutput>
     </None>
-    <None Include="My Project\DataSources\DocumentProperties.datasource" />
-    <None Include="My Project\DataSources\DocumentProperty.datasource" />
-    <None Include="My Project\DataSources\DocumentPropertyEnumerator.datasource" />
     <None Include="My Project\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <CustomToolNamespace>My</CustomToolNamespace>
@@ -213,21 +203,9 @@
     <EmbeddedResource Include="help.txt" />
   </ItemGroup>
   <ItemGroup>
-    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Windows.Installer.3.1">
-      <Visible>False</Visible>
-      <ProductName>Windows Installer 3.1</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
+    <PackageReference Include="log4net">
+      <Version>2.0.15</Version>
+    </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
@@ -237,60 +215,4 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-  <PropertyGroup>
-    <PostBuildEvent>@echo off
-
-if "$(ConfigurationName)"=="Debug" goto :EOF
-
-del /q "$(TargetDir)\*.pdb" &gt;nul 2&gt;nul
-rem del /q "$(TargetDir)\*.config" &gt;nul 2&gt;nul
-del /q "$(TargetDir)\build.*" &gt;nul 2&gt;nul
-
-set LOGFILE= "$(TargetDir)\build.log"
-
-for /f "tokens=1-3 delims=.-/ " %25%25a in ('date /t') do ( set day=%25%25a&amp;set month=%25%25b&amp;set year=%25%25c&amp;set datestamp=%25%25c-%25%25b-%25%25a)
-
-for /f "tokens=5-8 delims=:., " %25%25a in ('echo/^|time') do ( set hh=%25%25a&amp;set nn=%25%25b&amp;set ss=%25%25c&amp;set cs=%25%25d)
-echo $(TargetName) ($(PlatformName)) %25datestamp%25 %25hh%25:%25nn%25:%25ss%25 &gt; %25LOGFILE%25
-SET Timestamp=%25hh%25-%25nn%25-%25ss%25
-
-copy /Y /V "$(SolutionDir)\lib\$(PlatformName)\*.*" "$(TargetDir)"
-sleep 1
-
-
-rem --------------------------------------------------------------------
-xcopy /K /Y "$(TargetDir)*.*" "$(SolutionDir)\MTPropertyExchangeInstall\$(PlatformName)\" &gt;nul 2&gt;nul
-REM xcopy /K /Y "$(TargetDir)*.*" "D:\TestRT\$(PlatformName)\" &gt;nul 2&gt;nul
-
-rem --------------------------------------------------------------------
-pushd "$(SolutionDir)"
-if exist Install\MTPropertyExchangeInstall.exe del Install\MTPropertyExchangeInstall.exe
-mkdir MTPropertyExchangeInstall\lib &gt;nul 2&gt;nul
-copy /Y /V "$(SolutionDir)\lib\install\*.*" MTPropertyExchangeInstall\lib
-7-zip\7z.exe a -mx=9 MTPropertyExchangeInstall.7z MTPropertyExchangeInstall\
-
-mkdir Install &gt;nul 2&gt;nul
-copy /b 7-zip\7zsd_LZMA.sfx + 7-zip\MTPE_sxf_config.txt + MTPropertyExchangeInstall.7z Install\MTPropertyExchangeInstall-%25datestamp%25-%25Timestamp%25.exe
-
-del MTPropertyExchangeInstall.7z
-popd
-
-pushd \\cadlnz.primetals.com\apps600\TCApp_ww300\Tools\MTPropertyExchange
-
-echo Archiving old version ...
-move /Y *.exe Archive\ 2&gt;nul
-move /Y *.zip Archive\ 2&gt;nul
-echo Copying to  \\cadlnz.primetals.com\apps600\TCApp_ww300\Tools\MTPropertyExchange ...
-copy "$(SolutionDir)\Install\MTPropertyExchangeInstall-%25datestamp%25-%25Timestamp%25.exe" .
-popd
-
-
-:ende</PostBuildEvent>
-    <PreBuildEvent>if "$(ConfigurationName)"=="Debug" goto :EOF
-
-REM del /q  "$(SolutionDir)\MTPropertyExchangeInstall\$(PlatformName)\*.*" &gt;nul 2&gt;nul
-REM del /q  "D:\TestRT\$(PlatformName)\*.*" &gt;nul 2&gt;nul
-
-:ende</PreBuildEvent>
-  </PropertyGroup>
 </Project>

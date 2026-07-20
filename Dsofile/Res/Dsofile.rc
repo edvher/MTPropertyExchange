@@ -8,7 +8,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
+#include "winres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -33,9 +33,9 @@ BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE 
+2 TEXTINCLUDE DISCARDABLE
 BEGIN
-    "#include ""afxres.h""\r\n"
+    "#include ""winres.h""\r\n"
     "\0"
 END
 
@@ -75,7 +75,7 @@ BEGIN
             VALUE "CompanyName", "Microsoft Corporation\0"
             VALUE "FileDescription", DSOFILE_FULLNAME "\0"
             VALUE "FileVersion", DSOFILE_VERSION_BLDSTR "\0"
-            VALUE "LegalCopyright", "Copyright ©1999-2001; Microsoft Corporation\0"
+            VALUE "LegalCopyright", "Copyright ï¿½1999-2001; Microsoft Corporation\0"
             VALUE "OriginalFilename", "dsofile.dll\0"
             VALUE "ProductName", "DSOFILE\0"
             VALUE "ProductVersion", DSOFILE_VERSION_STR "\0"
@@ -95,7 +95,9 @@ END
 // TYPELIB
 //
 
-IDR_TYPELIB             TYPELIB DISCARDABLE     "..\\lib\\dsofile.tlb"
+// The type library is generated per platform by MIDL into $(IntDir),
+// which is on the resource compiler include path (see dsofile.vcxproj).
+IDR_TYPELIB             TYPELIB DISCARDABLE     "dsofile.tlb"
 
 /////////////////////////////////////////////////////////////////////////////
 //

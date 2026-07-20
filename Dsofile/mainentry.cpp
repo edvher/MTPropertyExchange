@@ -105,8 +105,8 @@ STDAPI DllRegisterServer()
 
  // Setup the CLSID. This is the most important. If there is a critical failure,
  // we will set HR = GetLastError and return...
-    if ((dwret = RegCreateKeyEx(HKEY_CLASSES_ROOT, 
-		"CLSID\\"DSOFILE_CLSIDSTR, 0, NULL, 0, KEY_WRITE, NULL, &hk, NULL)) != ERROR_SUCCESS)
+    if ((dwret = RegCreateKeyEx(HKEY_CLASSES_ROOT,
+		"CLSID\\" DSOFILE_CLSIDSTR, 0, NULL, 0, KEY_WRITE, NULL, &hk, NULL)) != ERROR_SUCCESS)
 	{
 		DsoMemFree(pwszModule);
         return HRESULT_FROM_WIN32(dwret);
@@ -211,10 +211,10 @@ static HRESULT RegRecursiveDeleteKey(HKEY hkParent, LPCSTR pszSubKey)
 //
 STDAPI DllUnregisterServer()
 {
-    HRESULT hr = RegRecursiveDeleteKey(HKEY_CLASSES_ROOT, "CLSID\\"DSOFILE_CLSIDSTR);
+    HRESULT hr = RegRecursiveDeleteKey(HKEY_CLASSES_ROOT, "CLSID\\" DSOFILE_CLSIDSTR);
     if (SUCCEEDED(hr))
     {
-        RegRecursiveDeleteKey(HKEY_CLASSES_ROOT, "TypeLib\\"DSOFILE_TLIBSTR);
+        RegRecursiveDeleteKey(HKEY_CLASSES_ROOT, "TypeLib\\" DSOFILE_TLIBSTR);
         RegRecursiveDeleteKey(HKEY_CLASSES_ROOT, DSOFILE_PROGID);
     }
     else if (hr == 0x80070002)

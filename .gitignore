@@ -1,0 +1,19 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+
+# Visual Studio noise
+.vs/
+*.suo
+*.user
+*.ncb
+packages/
+
+# Generated at build time (tlbimp from Dsofile\Lib\dsofile.tlb)
+lib/Interop.Dsofile.dll
+
+# Installer payload staged by MTPropertyExchangeInstall\stage.bat
+MTPropertyExchangeInstall/x86/
+MTPropertyExchangeInstall/x64/

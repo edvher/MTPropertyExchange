@@ -562,7 +562,9 @@ Public Class Globals
         Dim rs As String = String.Empty
         Dim util As IFilePropIO = Nothing
 
-        log4net.Config.XmlConfigurator.Configure(New FileInfo("C:\Program Files (x86)\Siemens\MT_PropertyExchange\MT_PropertyExchangeLog.config"))
+        ' Locate the log configuration relative to the installed assembly instead
+        ' of a hard coded (32-bit) Program Files path.
+        InitializeLogging()
 
         log.InfoFormat("GetAllCusProperties(fileName={0}, delim={1}", fileName, delim)
 
@@ -634,18 +636,22 @@ Public Class Globals
         Dim subdir As String = Path.DirectorySeparatorChar & "Siemens" & Path.DirectorySeparatorChar & "MT_PropertyExchange"
         Dim settingsFileNameWithPath As String = subdir & Path.DirectorySeparatorChar & settingsFileName
 
+        Dim pf86 As String = Environment.GetEnvironmentVariable("ProgramFiles(x86)")
+
         fi = New FileInfo(settingsFileName)
         If Not fi.Exists Then fi = New FileInfo(Directory.GetCurrentDirectory & Path.DirectorySeparatorChar & settingsFileName)
         If Not fi.Exists Then fi = New FileInfo(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly.Location) & Path.DirectorySeparatorChar & settingsFileName)
-        If Not fi.Exists Then fi = New FileInfo(System.Environment.GetFolderPath(Environment.GetEnvironmentVariable("ProgramFiles(x86)")) & settingsFileNameWithPath)
-        If Not fi.Exists Then fi = New FileInfo(System.Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) & settingsFileNameWithPath)
+        If Not fi.Exists AndAlso Not String.IsNullOrEmpty(pf86) Then fi = New FileInfo(pf86 & settingsFileNameWithPath)
+        If Not fi.Exists Then fi = New FileInfo(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) & settingsFileNameWithPath)
         If Not fi.Exists Then Exit Sub
 
         log4net.Config.XmlConfigurator.Configure(fi)
         Dim logAppender As RollingFileAppender = GetLogAppender()
-        logAppender.ImmediateFlush = True
-        logAppender.AppendToFile = True
-        logAppender.ActivateOptions()
+        If logAppender IsNot Nothing Then
+            logAppender.ImmediateFlush = True
+            logAppender.AppendToFile = True
+            logAppender.ActivateOptions()
+        End If
         log.Info("Logging initialized.")
 
     End Sub
@@ -694,6 +700,6 @@ Public Class Globals
     End Sub
 
     Public Function Version() As String
-        Return "2013-02-21 10:41:00"
+        Return "2026-07-20 12:00:00"
     End Function
 End Class
