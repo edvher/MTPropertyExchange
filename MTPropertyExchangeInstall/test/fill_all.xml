@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Properties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Property Name="creator" Value="author" />
+  <Property Name="category" Value="category" />
+  <Property Name="description" Value="comments" />
+  <Property Name="keywords" Value="keywords" />
+  <Property Name="subject" Value="subject" />
+  <Property Name="title" Value="title" />
+  <Property Name="ApprovedBy" Value="ApprovedBy"/>
+  <Property Name="ApprovedOn" Value="ApprovedOn"/>
+  <Property Name="Area" Value="Area"/>
+  <Property Name="CheckedBy" Value="CheckedBy"/>
+  <Property Name="CheckedOn" Value="CheckedOn"/>
+  <Property Name="ConsortialPartner" Value="ConsortialPartner"/>
+  <Property Name="ConsortialPartnerNo" Value="ConsortialPartnerNo"/>
+  <Property Name="ContractItemNo" Value="ContractItemNo"/>
+  <Property Name="CountNo" Value="CountNo"/>
+  <Property Name="CreatedBy" Value="CreatedBy"/>
+  <Property Name="CreatedOn" Value="CreatedOn"/>
+  <Property Name="Customer" Value="Customer"/>
+  <Property Name="CustomerDrawingNo" Value="CustomerDrawingNo"/>
+  <Property Name="customerLogoOld" Value="customerLogoOld"/>
+  <Property Name="CustomerProjectDescription" Value="CustomerProjectDescription"/>
+  <Property Name="CustomerRevisionNo" Value="CustomerRevisionNo"/>
+  <Property Name="CustomerSheetFormat" Value="CustomerSheetFormat" />
+  <Property Name="DepartmentDescription" Value="DepartmentDescription"/>
+  <Property Name="DocType" Value="DocType"/>
+  <Property Name="DocumentLanguage" Value="DocumentLanguage"/>
+  <Property Name="DocumentNo" Value="DocumentNo"/>
+  <Property Name="DocumentTypeText" Value="DocumentTypeText"/>
+  <Property Name="DocumentTypeTextPL" Value="DocumentTypeTextPL"/>
+  <Property Name="EngineeringPackage" Value="EngineeringPackage"/>
+  <Property Name="EngPackText" Value="EngPackText"/>
+  <Property Name="Equipment" Value="Equipment"/>
+  <Property Name="Mandator" Value="Mandator"/>
+  <Property Name="Mass" Value="Mass"/>
+  <Property Name="MassUnit" Value="MassUnit"/>
+  <Property Name="Material" Value="Material"/>
+  <Property Name="mtBuilt" Value="mtBuilt"/>
+  <Property Name="NoOfSheets" Value="NoOfSheets"/>
+  <Property Name="PartNo" Value="PartNo"/>
+  <Property Name="PlantCode" Value="PlantCode"/>
+  <Property Name="ProjectCode" Value="ProjectCode"/>
+  <Property Name="projectDepartment" Value="projectDepartment"/>
+  <Property Name="ProjectProperty1" Value="ProjectProperty1"/>
+  <Property Name="ProjectProperty2" Value="ProjectProperty2"/>
+  <Property Name="ProjectProperty3" Value="ProjectProperty3"/>
+  <Property Name="ProjectProperty4" Value="ProjectProperty4"/>
+  <Property Name="ProjectProperty5" Value="ProjectProperty5"/>
+  <Property Name="ProjectProperty6" Value="ProjectProperty6"/>
+  <Property Name="ProjectProperty7" Value="ProjectProperty7"/>
+  <Property Name="ProjectProperty8" Value="ProjectProperty8"/>
+  <Property Name="ProjectProperty9" Value="ProjectProperty9"/>
+  <Property Name="RevisedBy" Value="RevisedBy"/>
+  <Property Name="RevisedOn" Value="RevisedOn"/>
+  <Property Name="RevisionApprovedBy" Value="RevisionApprovedBy"/>
+  <Property Name="RevisionDescription" Value="RevisionDescription"/>
+  <Property Name="RevisionNo" Value="RevisionNo"/>
+  <Property Name="SAP_DocType" Value="SAP_DocType"/>  
+  <Property Name="Scale1" Value="Scale1"/>
+  <Property Name="Scale2" Value="Scale2"/>
+  <Property Name="SecLevText" Value="SecLevText"/>
+  <Property Name="SectionNo" Value="SectionNo"/>
+  <Property Name="SectionText" Value="SectionText"/>
+  <Property Name="SectionTextPL" Value="SectionTextPL"/>
+  <Property Name="SecurityLevel" Value="SecurityLevel"/>
+  <Property Name="SheetFormat" Value="SheetFormat"/>
+  <Property Name="SheetNo" Value="SheetNo"/>
+  <Property Name="Status" Value="Status"/>
+  <Property Name="SubGroup" Value="SubGroup"/>
+  <Property Name="Supplier" Value="Supplier"/>
+  <Property Name="SupplierDocNo" Value="SupplierDocNo"/>
+  <Property Name="SupplyGroup" Value="SupplyGroup"/>
+  <Property Name="SupplyGroupText" Value="SupplyGroupText"/>
+  <Property Name="SupplyGroupTextPL" Value="SupplyGroupTextPL"/>
+  <Property Name="Title1" Value="Title1"/>
+  <Property Name="Title1PL" Value="Title1PL"/>
+  <Property Name="Title2" Value="Title2"/>
+  <Property Name="Title2PL" Value="Title2PL"/>
+  <Property Name="Title3" Value="Title3"/>
+  <Property Name="Title3PL" Value="Title3PL"/>
+  <Property Name="Title4" Value="Title4"/>
+  <Property Name="Title4a" Value="Title4a"/>
+  <Property Name="Title4aPL" Value="Title4aPL"/>
+  <Property Name="Title4b" Value="Title4b"/>
+  <Property Name="Title4bPL" Value="Title4bPL"/>
+  <Property Name="Title4PL" Value="Title4PL"/>
+  <Property Name="Title5" Value="Title5"/>
+  <Property Name="Title5PL" Value="Title5PL"/>
+  <Property Name="vaiCompany" Value="vaiCompany"/>
+  <Property Name="vaiLogoOld" Value="vaiLogoOld"/>
+  <Property Name="VolumeNo" Value="VolumeNo"/>
+  <Property Name="VolumeText" Value="VolumeText"/>
+  <Property Name="VolumeTextPL" Value="VolumeTextPL"/>
+</Properties>

@@ -1,0 +1,47 @@
+@echo off
+
+set pu=d:\testrt\PropertyUpdateFile.txt
+set fi=d:\testrt\sap.doc
+
+echo %pu%
+echo %fi%
+
+for %%a in ( %fi% ) DO (
+set fipth=%%~dpa
+set finam=%%~na
+set finex=%%~xa
+)
+echo %fipth%%finam%%finex%
+
+
+mkdir %TEMP%\EncodingTest >nul 2>&1
+mkdir %TEMP%\EncodingTest >nul 2>&1
+del /q %TEMP%\EncodingTest\*.*
+copy %fipth%%finam%%finex% %TEMP%\EncodingTest\ >nul 2>&1
+copy %pu% %TEMP%\EncodingTest\ >nul 2>&1
+
+
+echo Now wait til infinity....
+start explorer.exe %TEMP%\EncodingTest
+for /f %%a in ('mt_propertyexchange -help-enc') DO (
+rem for /f %%a in ("iso-8859-1") DO (
+  copy %finam%%finex% %TEMP%\EncodingTest\%finam%-%%a%finex% >nul 2>&1
+
+  @echo  Encoding %%a ...
+  mt_propertyexchange.exe -mode=i -txt="%pu%" -file="%TEMP%\EncodingTest\%finam%-%%a%finex%" -encoding="%%a" -clearlog -logfile="%TEMP%\EncodingTest\%finam%-%%a.log" -loglevel=DEBUG >nul 2>&1
+REM   set x=
+REM   find /c "9009" %TEMP%\EncodingTest\%finam%-%%a.log
+REM   if ERRORLEVEL 1 (
+REM 	@echo Encoding %%a succeeded.
+    mt_propertyexchange -mode=m -file=%TEMP%\EncodingTest\%finam%-%%a%finex% -macro=DLLSAP2Document -logfile="%TEMP%\EncodingTest\%finam%-%%a.log" -loglevel=DEBUG >nul 2>&1
+REM   ) ELSE (
+REM     @echo Encoding %%a failed.
+REM     IF exist %TEMP%\EncodingTest\%finam%-%%a%finex% del /q %TEMP%\EncodingTest\%finam%-%%a%finex% >nul 2>&1
+REM   )
+)
+
+
+:ende
+@echo Finished.
+pause
+exit

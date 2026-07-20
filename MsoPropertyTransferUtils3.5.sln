@@ -1,0 +1,77 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{35E2E7F9-F1D7-42DA-A36C-071D8CB46475}"
+	ProjectSection(SolutionItems) = preProject
+		MTPropertyExchangeInstall\install.bat = MTPropertyExchangeInstall\install.bat
+		7-zip\MTPE_sxf_config.txt = 7-zip\MTPE_sxf_config.txt
+	EndProjectSection
+EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "MT_PropertyExchangeDLL.dll", "MT_PropertyExchange.dll\MT_PropertyExchangeDLL.dll.vbproj", "{F2F1E52C-933A-49C1-99BB-5BA3296D443C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834} = {E2EED323-9E53-4193-B0D6-FA3987FE9834}
+	EndProjectSection
+EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "MT_PropertyExchange.exe", "MT_PropertyExchange.exe\MT_PropertyExchange.exe.vbproj", "{F2AF679D-D074-490B-A82F-D35EE130AE2D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandLine", "CommandLine\CommandLine.csproj", "{E2EED323-9E53-4193-B0D6-FA3987FE9834}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Debug|Win32.ActiveCfg = Debug|x64
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Debug|x64.ActiveCfg = Debug|x64
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Debug|x64.Build.0 = Debug|x64
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Debug|x86.ActiveCfg = Debug|x86
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Debug|x86.Build.0 = Debug|x86
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Release|Win32.ActiveCfg = Release|x64
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Release|x64.ActiveCfg = Release|x64
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Release|x64.Build.0 = Release|x64
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Release|x86.ActiveCfg = Release|x86
+		{F2F1E52C-933A-49C1-99BB-5BA3296D443C}.Release|x86.Build.0 = Release|x86
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Debug|Win32.ActiveCfg = Debug|x64
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Debug|x64.ActiveCfg = Debug|x64
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Debug|x64.Build.0 = Debug|x64
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Debug|x86.ActiveCfg = Debug|x86
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Debug|x86.Build.0 = Debug|x86
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Release|Win32.ActiveCfg = Release|x64
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Release|x64.ActiveCfg = Release|x64
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Release|x64.Build.0 = Release|x64
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Release|x86.ActiveCfg = Release|x86
+		{F2AF679D-D074-490B-A82F-D35EE130AE2D}.Release|x86.Build.0 = Release|x86
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Debug|Any CPU.ActiveCfg = Release|Any CPU
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Debug|Any CPU.Build.0 = Release|Any CPU
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Debug|Win32.ActiveCfg = Debug|x64
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Debug|x64.ActiveCfg = Debug|x64
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Debug|x64.Build.0 = Debug|x64
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Debug|x86.ActiveCfg = Debug|x86
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Debug|x86.Build.0 = Debug|x86
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Release|Win32.ActiveCfg = Release|x64
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Release|x64.ActiveCfg = Release|x64
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Release|x64.Build.0 = Release|x64
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Release|x86.ActiveCfg = Release|x86
+		{E2EED323-9E53-4193-B0D6-FA3987FE9834}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

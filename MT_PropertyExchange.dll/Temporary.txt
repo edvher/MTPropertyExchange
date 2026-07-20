@@ -1,0 +1,572 @@
+﻿Imports System
+Imports System.Text
+Imports System.IO
+Imports System.Xml
+Imports System.Threading
+Imports System.Globalization
+Imports Word = Microsoft.Office.Interop.Word
+Imports Excel = Microsoft.Office.Interop.Excel
+Imports Office = Microsoft.Office.Core
+Imports msvbe = Microsoft.Vbe.Interop
+Imports System.IO.Packaging
+Imports System.Runtime.InteropServices
+
+
+'<Microsoft.VisualBasic.ComClass("ACE77ADE-F918-49aa-AC7E-80E6114DF3D2")> _
+<ComVisible(False), ProgId("MT_PropertyExchange.Worker")> _
+Public Class Worker
+    Public ReadOnly Property ProgId() As String
+        Get
+            Return "MT_PropertyExchange.Worker"
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' FilePorpIO Error codes
+    ''' </summary>
+    <ComVisible(False)> _
+        Public Enum Errors
+        ''' <summary>
+        ''' Unknown error cause.
+        ''' </summary>
+        UnknownError = -1
+        ''' <summary>
+        ''' Success. No error happened.
+        ''' </summary>
+        NoError = 0
+        ''' <summary>
+        ''' File could not be found.
+        ''' </summary>
+        FileNotFound = 9000
+        ''' <summary>
+        ''' File could be found, but is read only.
+        ''' </summary>
+        FileReadOnly = 9001
+        ''' <summary>
+        ''' Unable to convert property to valid value. 
+        ''' </summary>
+        InvalidData = 9002
+        ''' <summary>
+        ''' General automation error.
+        ''' </summary>
+        ApplicationError = 9003
+        ''' <summary>
+        ''' Unknown file extension.
+        ''' </summary>
+        ExtensionUnknown = 9004
+        ''' <summary>
+        ''' Mode type unknown. (command line only)
+        ''' </summary>
+        WrongMethodCode = 9005
+        ''' <summary>
+        ''' Parameter missing. (command line only)
+        ''' </summary>
+        ParameterMissing = 9006
+        ''' <summary>
+        ''' Office macro could not be found or executed.
+        ''' </summary>
+        MacroNotFound = 9007
+        ''' <summary>
+        ''' File in use.
+        ''' </summary>
+        FileInUse = 9008
+
+    End Enum
+
+    Protected Friend Shared Function HandleEx(ByRef e As Exception) As Integer
+        Dim rc As Integer = 0
+        Try
+            Throw e
+        Catch ioe As System.IO.IOException
+            System.Console.Error.WriteLine(ioe.Message)
+            If TypeOf ioe Is System.IO.FileNotFoundException Then
+                rc = Errors.FileNotFound
+            Else
+                rc = Errors.FileInUse
+            End If
+        Catch fro As FileReadOnlyException
+            System.Console.Error.WriteLine(fro.Message)
+            rc = Errors.FileReadOnly
+        Catch appex As ApplicationException
+            System.Console.Error.WriteLine(appex.Message)
+            If rc = 0 Then rc = Errors.ApplicationError
+        Catch comex As COMException
+            System.Console.Error.WriteLine(comex.Message)
+            rc = comex.ErrorCode
+        Catch ex As Exception
+            System.Console.Error.WriteLine(ex.Message)
+            rc = Errors.UnknownError
+        End Try
+        GC.Collect()
+        System.Environment.ExitCode = rc
+        Return rc
+    End Function
+
+    ''' <summary>
+    ''' Class factory generating the correct instance object to manipulate Office
+    ''' document properties.
+    ''' </summary>
+    ''' <param name="filename">Full path to Office document</param>
+    ''' <returns>
+    ''' <see cref="T:MT_PropertyExchange.FilePropIO2003">FilePropIO2003</see> or <see
+    ''' cref="T:MT_PropertyExchange.FilePropIO2007">FilePropIO2007</see> object, if
+    ''' succesful,
+    ''' <para><see langword="null"/> otherwise</para>
+    ''' </returns>
+    Public Shared Function FilePropIOFactory(ByVal filename As String) As IFilePropIO
+        Dim rv As IFilePropIO = New FilePropIO2003
+        If rv.IsExcel(filename) Then Return rv
+        If rv.IsWord(filename) Then Return rv
+        rv = Nothing
+        GC.Collect()
+        rv = New FilePropIO2007
+        If rv.IsExcel(filename) Then Return rv
+        If rv.IsWord(filename) Then Return rv
+        rv = Nothing
+        GC.Collect()
+        Return Nothing
+    End Function
+
+    Protected Friend Shared Function RunMacro(ByVal fileName As String, ByVal macroName As String, ByVal template As String, ByRef caller As IFilePropIO) As Integer
+        Dim rc As Integer = 0
+        Dim bStarted As Boolean = False
+        macroName = macroName.Trim()
+
+        Try
+            Dim fi As New FileInfo(fileName)
+            If Not fi.Exists Then : Throw New FileNotFoundException("File " & fileName & " not found.") : End If
+            If fi.IsReadOnly Then : Throw New FileReadOnlyException("File " & fileName & " is read only.") : End If
+            fi = Nothing
+
+            If caller.IsWord(fileName) Then
+                Dim wdApp As Word.Application = Nothing
+                If wdApp Is Nothing Then
+                    System.Console.WriteLine("Creating Word.Application instance.")
+                    wdApp = New Word.Application
+                    bStarted = True
+                End If
+                System.Console.WriteLine("Setting properties of Application.")
+                wdApp.NormalTemplate.Saved = True : wdApp.DisplayAlerts = Word.WdAlertLevel.wdAlertsNone
+
+                Try
+                    wdApp.Run(macroName, fileName)
+                Catch comex As Exception
+                    System.Console.Error.WriteLine("Cannot run macro. Macro not found or erroneous.")
+                    System.Console.Error.WriteLine(comex.Message)
+                    System.Console.Error.WriteLine("Loaded templates:")
+                    Try
+                        For Each ai As Object In wdApp.Templates
+                            System.Console.Error.WriteLine(Path.Combine(ai.Path, ai.Name))
+                        Next
+                    Catch ex As Exception
+
+                    End Try
+                    rc = Errors.MacroNotFound
+                End Try
+                wdApp.NormalTemplate.Saved = True : wdApp.DisplayAlerts = Word.WdAlertLevel.wdAlertsNone
+                If bStarted Then
+                    wdApp.Quit()
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(wdApp)
+                    wdApp = Nothing
+                End If
+
+            ElseIf caller.IsExcel(fileName) Then
+                Dim xlApp As Excel.Application = Nothing
+                Dim xlAddin As Object = Nothing
+                Dim xlDoc As Excel.Workbook = Nothing
+                Dim xlaPath As String = template
+                Dim bFound As Boolean = False
+
+                Try
+                    System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.CreateSpecificCulture("en-US")
+
+                    If xlApp Is Nothing Then
+                        System.Console.WriteLine("Creating Excel.Application instance.")
+                        xlApp = New Excel.Application()
+                        System.Console.WriteLine(String.Format("Created Excel.Application version {0}.", xlApp.Version))
+                        bStarted = True
+                        xlApp.DisplayAlerts = False
+                        xlApp.Visible = False
+                    End If
+                    If xlApp IsNot Nothing AndAlso xlDoc Is Nothing Then
+                        System.Console.WriteLine("Building up search path inventory...")
+
+                        Dim paths As New Collections.ArrayList()
+                        paths.Add(xlApp.StartupPath)
+                        paths.Add(Path.Combine(xlApp.StartupPath, "Library\mt"))
+                        paths.Add(Path.Combine(xlApp.StartupPath, "Library\vai"))
+                        paths.Add(xlApp.LibraryPath)
+                        paths.Add(Path.Combine(xlApp.LibraryPath, "mt"))
+                        paths.Add(Path.Combine(xlApp.LibraryPath, "vai"))
+                        paths.Add(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + "\Library\mt")
+                        paths.Add(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + "\Library\vai")
+                        paths.Add(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + "\Siemens\MT\Office")
+                        paths.Add(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + " (x86)\Library\mt")
+                        paths.Add(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + " (x86)\Library\vai")
+                        paths.Add(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + " (x86)\Siemens\MT\Office")
+
+                        System.Console.WriteLine("Building up template file names inventory...")
+                        Dim macros As New Collections.ArrayList()
+                        macros.Add("MT_Addin_01_PLM.xlam")
+                        macros.Add("plmUpdateServer.xla")
+
+                        System.Console.WriteLine("Building path-file permutations...")
+                        Dim probe As New Collections.ArrayList()
+                        If Not template.Equals(String.Empty) Then
+                            fi = New FileInfo(template)
+                            If Not fi.Exists Then
+                                System.Console.Error.WriteLine(String.Format("Template ({0}) not found. Trying defaults.", template))
+                            Else
+                                probe.Add(template)
+                            End If
+                            fi = Nothing
+                        End If
+                        For Each m As String In macros
+                            For Each p As String In paths
+                                probe.Add(Path.Combine(p, m))
+                            Next
+                        Next
+                        macros.Clear()
+                        paths.Clear()
+
+                        System.Console.WriteLine("Start seeking addin...")
+                        For Each pth As String In probe
+
+                            xlaPath = pth
+                            System.Console.WriteLine(String.Format("Probing for {0} ...", xlaPath))
+                            fi = New FileInfo(xlaPath)
+
+                            'For Each addIn As Excel.AddIn In xlApp.AddIns
+                            '    If addIn.Name.Equals(fi.Name, StringComparison.InvariantCultureIgnoreCase) Then
+                            '        xlaPath = addIn.FullName
+                            '        xlAddin = addIn
+                            '        bFound = True
+                            '        System.Console.Error.WriteLine("Template seems to have been loaded on startup!")
+                            '        Exit For
+                            '    End If
+                            'Next
+
+                            If Not bFound AndAlso fi.Exists Then
+                                System.Console.WriteLine("File exists. Creating Object instance.")
+                                Try
+                                    xlAddin = xlApp.Workbooks.Open(xlaPath)
+                                Catch ex1 As COMException
+                                    Try
+                                        xlAddin = xlApp.AddIns.Add(xlaPath)
+                                    Catch comex As COMException
+                                        System.Console.Error.WriteLine("COM Exception. Cannot continue:")
+                                        System.Console.Error.WriteLine(comex.Message)
+                                        rc = comex.ErrorCode
+                                        xlAddin = Nothing
+                                    Catch ex As Exception
+                                        System.Console.Error.WriteLine("Unknown  Exception. Cannot continue:")
+                                        System.Console.Error.WriteLine(ex.Message)
+                                        rc = Errors.UnknownError
+                                        xlAddin = Nothing
+                                    End Try
+                                End Try
+                                bFound = (xlAddin IsNot Nothing)
+                                If bFound Then Exit For
+                            End If
+                            fi = Nothing
+                            If (bFound) Then Exit For
+                            'System.Console.Error.WriteLine(String.Empty)
+                        Next
+                        probe.Clear()
+
+                        bFound = (xlAddin IsNot Nothing)
+                        If bFound Then
+                            System.Console.WriteLine(String.Format("Success.", xlaPath))
+                            Try
+                                TryCast(xlAddin, Excel.Workbook).IsAddin = True
+                            Catch ex As Exception
+                                'System.Console.Error.WriteLine(String.Format("Could not set IsAddin property.", xlaPath))
+                            End Try
+                            System.Console.WriteLine(String.Format("Executing macro [{0}] on [{1}].", "'" + xlaPath + "'!" + macroName, fileName))
+                            xlApp.Run("'" + xlaPath + "'!" + macroName, fileName)
+                        Else
+                            System.Console.Error.WriteLine("Template could not be loaded!")
+                            rc = Errors.MacroNotFound
+                        End If
+                    End If
+                Catch comex As COMException
+                    System.Console.Error.WriteLine("COM Exception. Cannot continue:")
+                    System.Console.Error.WriteLine(comex.Message)
+                    rc = comex.ErrorCode
+                Finally
+                    If bFound Then System.Runtime.InteropServices.Marshal.ReleaseComObject(xlAddin)
+                    xlAddin = Nothing
+                    If bStarted Then
+                        xlApp.Quit()
+                        System.Runtime.InteropServices.Marshal.ReleaseComObject(xlApp)
+                        xlApp = Nothing
+                    End If
+                End Try
+            Else
+                rc = Errors.ExtensionUnknown
+            End If
+        Catch ex As Exception
+            rc = Worker.HandleEx(ex)
+        End Try
+        GC.Collect()
+        Return rc
+    End Function
+
+    Public Shared Function WriteProperty(ByVal fileName As String, ByVal propertyName As String, ByVal propertyValue As String) As Integer
+        Dim rc As Errors : rc = Errors.NoError
+        Dim util As IFilePropIO = Nothing
+
+
+        util = Worker.FilePropIOFactory(fileName)
+        If util Is Nothing Then
+            System.Console.Error.WriteLine("File extension unknown. Cannot proceed.")
+            rc = Errors.ExtensionUnknown
+        End If
+
+        If rc = 0 Then rc = util.WriteProp(fileName, propertyName, propertyValue)
+
+        Return rc
+    End Function
+
+    Public Shared Function ReadProperty(ByVal fileName As String, ByVal propertyName As String) As String
+        Dim rc As Errors : rc = Errors.NoError
+        Dim rs As String = String.Empty
+        Dim util As IFilePropIO = Nothing
+
+        util = Worker.FilePropIOFactory(fileName)
+        If util Is Nothing Then
+            System.Console.Error.WriteLine("File extension unknown. Cannot proceed.")
+            rc = Errors.ExtensionUnknown
+        End If
+
+        If rc = 0 Then rs = util.ReadProperty(fileName, propertyName)
+        Return rs
+    End Function
+
+    Public Shared Function ExportProperties(ByVal fileName As String) As String
+        Dim rc As Errors : rc = Errors.NoError
+        Dim rs As String = String.Empty
+        Dim util As IFilePropIO = Nothing
+
+        util = Worker.FilePropIOFactory(fileName)
+        If util Is Nothing Then
+            System.Console.Error.WriteLine("File extension unknown. Cannot proceed.")
+            rc = Errors.ExtensionUnknown
+        End If
+
+        If rc = 0 Then rs = util.ReadAllProperties(fileName)
+
+        Dim p As DocumentProperties = DocumentProperties.FromXml(rs)
+        rs = Path.GetTempFileName()
+        File.Delete(rs)
+        rs = System.IO.Path.ChangeExtension(rs, ".xml")
+        p.SaveToFile(rs)
+        Return rs
+    End Function
+
+    Public Shared Function GetAllProperties(ByVal fileName As String) As String
+        Return GetAllProperties(fileName, vbCrLf)
+    End Function
+
+    Public Shared Function GetAllProperties(ByVal fileName As String, ByVal delim As String) As String
+        Dim rc As Errors : rc = Errors.NoError
+        Dim rs As String = String.Empty
+        Dim util As IFilePropIO = Nothing
+
+        util = Worker.FilePropIOFactory(fileName)
+        If util Is Nothing Then
+            System.Console.Error.WriteLine("File extension unknown. Cannot proceed.")
+            rc = Errors.ExtensionUnknown
+        End If
+
+        If rc = 0 Then rs = util.ReadAllProperties(fileName)
+        Dim p As DocumentProperties = DocumentProperties.FromXml(rs)
+        rs = String.Empty
+
+        For Each prop As DocumentProperty In p
+            If rs.Equals(String.Empty) Then
+                rs = prop.Name
+            Else
+                rs = rs + delim + prop.Name
+            End If
+        Next
+        Return rs
+    End Function
+
+    Public Shared Function ImportProperties(ByVal importFileName As String, ByVal fileName As String) As Integer
+        Dim rc As Errors : rc = Errors.NoError
+        Dim rs As String = String.Empty
+        Dim util As IFilePropIO = Nothing
+
+        util = Worker.FilePropIOFactory(fileName)
+        If util Is Nothing Then
+            System.Console.Error.WriteLine("File extension unknown. Cannot proceed.")
+            rc = Errors.ExtensionUnknown
+        End If
+
+        Dim p As DocumentProperties = DocumentProperties.LoadFromFile(importFileName)
+        If p Is Nothing Then rc = Errors.InvalidData
+        If rc = 0 Then rc = util.WriteAllProperties(p.ToXml(), fileName)
+        Return rc
+    End Function
+
+    Public Shared Function DeleteProperty(ByVal fileName As String, ByVal propertyName As String) As Integer
+        Dim rc As Errors : rc = Errors.NoError
+        Dim util As IFilePropIO = Nothing
+
+        util = Worker.FilePropIOFactory(fileName)
+        If util Is Nothing Then
+            System.Console.Error.WriteLine("File extension unknown. Cannot proceed.")
+            rc = Errors.ExtensionUnknown
+        End If
+
+        If rc = 0 Then rc = util.DeleteProp(fileName, propertyName)
+        Return rc
+    End Function
+
+    Public Shared Function RunMacro(ByVal fileName As String, ByVal macroName As String, ByVal template As String) As Integer
+        Dim rc As Errors : rc = Errors.NoError
+        Dim util As IFilePropIO = Nothing
+
+        util = Worker.FilePropIOFactory(fileName)
+        If util Is Nothing Then
+            System.Console.Error.WriteLine("File extension unknown. Cannot proceed.")
+            rc = Errors.ExtensionUnknown
+        End If
+
+        If rc = 0 Then rc = util.RunMacro(fileName, macroName, template)
+        Return rc
+    End Function
+
+    Public Shared Function RunMacro(ByVal fileName As String, ByVal macroName As String) As Integer
+        Dim rc As Errors : rc = Errors.NoError
+        Dim util As IFilePropIO = Nothing
+
+        util = Worker.FilePropIOFactory(fileName)
+        If util Is Nothing Then
+            System.Console.Error.WriteLine("File extension unknown. Cannot proceed.")
+            rc = Errors.ExtensionUnknown
+        End If
+
+        If rc = 0 Then rc = util.RunMacro(fileName, macroName, String.Empty)
+        Return rc
+    End Function
+
+    Public Shared Function GetAllCusProperties(ByVal fileName As String) As String
+        Return GetAllCusProperties(fileName, "@|")
+    End Function
+
+    Public Shared Function GetAllCusProperties(ByVal fileName As String, ByVal delim As String) As String
+        Dim rc As Errors : rc = Errors.NoError
+        Dim rs As String = String.Empty
+        Dim util As IFilePropIO = Nothing
+
+        util = Worker.FilePropIOFactory(fileName)
+        If util Is Nothing Then
+            System.Console.Error.WriteLine("File extension unknown. Cannot proceed.")
+            rc = Errors.ExtensionUnknown
+        End If
+
+        If rc = 0 Then rs = util.ReadAllProperties(fileName)
+        Dim p As DocumentProperties = DocumentProperties.FromXml(rs)
+
+        Dim prAllProp As String = Path.GetTempFileName()
+
+        Dim wr As New System.IO.StreamWriter(prAllProp, False, Encoding.UTF8)
+        For Each prop As DocumentProperty In p
+            wr.WriteLine(prop.Name + delim + prop.Value)
+        Next
+        wr.Flush()
+        wr.Close()
+        Return prAllProp
+    End Function
+
+    Public Shared Function ImportPropertiesFromText(ByVal importFileName As String, ByVal fileName As String) As Integer
+        Dim rc As Errors : rc = Errors.NoError
+        Dim rs As String = String.Empty
+        Dim util As IFilePropIO = Nothing
+
+        util = Worker.FilePropIOFactory(fileName)
+        If util Is Nothing Then
+            System.Console.Error.WriteLine("File extension unknown. Cannot proceed.")
+            rc = Errors.ExtensionUnknown
+        End If
+
+        Dim p As DocumentProperties = DocumentProperties.LoadFromTextFile(importFileName)
+        If p Is Nothing Then rc = Errors.InvalidData
+        If rc = 0 Then rc = util.WriteAllProperties(p.ToXml(), fileName)
+        Return rc
+    End Function
+End Class
+
+'<Guid("212229FA-D19F-4a1e-87DE-BEBE06F72EE1"), _
+'InterfaceType(ComInterfaceType.InterfaceIsIDispatch)> _
+'Public Interface _PropertyExchange
+'    <DispId(1)> Function WriteProperty(ByVal fileName As String, ByVal propertyName As String, ByVal propertyValue As String) As Integer
+'    <DispId(2)> Function ReadProperty(ByVal fileName As String, ByVal propertyName As String) As String
+'    <DispId(3)> Function ExportProperties(ByVal fileName As String) As String
+'    <DispId(4)> Function GetAllProperties(ByVal fileName As String) As String
+'    <DispId(5)> Function GetAllProperties_2(ByVal fileName As String, ByVal delim As String) As String
+'    <DispId(6)> Function ImportProperties(ByVal importFileName As String, ByVal fileName As String) As Integer
+'    <DispId(7)> Function DeleteProperty(ByVal fileName As String, ByVal propertyName As String) As Integer
+'    <DispId(8)> Function RunMacro(ByVal fileName As String, ByVal macroName As String) As Integer
+'    <DispId(9)> Function RunMacro_2(ByVal fileName As String, ByVal macroName As String, ByVal template As String) As Integer
+'    <DispId(10)> Function GetAllCusProperties(ByVal fileName As String) As String
+'    <DispId(11)> Function GetAllCusProperties_2(ByVal fileName As String, ByVal delim As String) As String
+'    <DispId(12)> Function ImportPropertiesFromText(ByVal importFileName As String, ByVal fileName As String) As Integer
+'    <DispId(13)> Property prAllProp() As String
+'End Interface
+
+'<Guid("1376DE24-CC2D-46cb-8BF0-887A9CAF3014"), _
+'  ClassInterface(ClassInterfaceType.None), _
+'  ProgId("MT_PropertyExchange.Worker"), _
+
+<Microsoft.VisualBasic.ComClass("41A13AC0-103B-40ec-9A52-AEE2C6C846C6"), ComVisible(True), ProgId("MT_PropertyExchange.Globals")> _
+Public Class Globals
+    Private _prAllProp As String = String.Empty
+    Public ReadOnly Property prAllProp() As String
+        Get
+            Return _prAllProp
+        End Get
+    End Property
+    Public Function WriteProperty(ByVal fileName As String, ByVal propertyName As String, ByVal propertyValue As String) As Integer
+        Return Worker.WriteProperty(fileName, propertyName, propertyValue)
+    End Function
+    Public Function ReadProperty(ByVal fileName As String, ByVal propertyName As String) As String
+        Return Worker.ReadProperty(fileName, propertyName)
+    End Function
+    Public Function ExportProperties(ByVal fileName As String) As String
+        Return Worker.ExportProperties(fileName)
+    End Function
+    Public Function GetAllProperties(ByVal fileName As String) As String
+        Return Worker.GetAllProperties(fileName)
+    End Function
+    Public Function GetAllProperties_2(ByVal fileName As String, ByVal delim As String) As String
+        Return Worker.GetAllProperties(fileName, delim)
+    End Function
+    Public Function ImportProperties(ByVal importFileName As String, ByVal fileName As String) As Integer
+        Return Worker.ImportProperties(importFileName, fileName)
+    End Function
+    Public Function DeleteProperty(ByVal fileName As String, ByVal propertyName As String) As Integer
+        Return Worker.DeleteProperty(fileName, propertyName)
+    End Function
+    Public Function RunMacro(ByVal fileName As String, ByVal macroName As String) As Integer
+        Return Worker.RunMacro(fileName, macroName)
+    End Function
+    Public Function RunMacro_2(ByVal fileName As String, ByVal macroName As String, ByVal template As String) As Integer
+        Return Worker.RunMacro(fileName, macroName, template)
+    End Function
+    Public Function GetAllCusProperties(ByVal fileName As String) As String
+        _prAllProp = Worker.GetAllCusProperties(fileName)
+        Return _prAllProp
+    End Function
+    Public Function GetAllCusProperties_2(ByVal fileName As String, ByVal delim As String) As String
+        _prAllProp = Worker.GetAllCusProperties(fileName, delim)
+        Return _prAllProp
+    End Function
+    Public Function ImportPropertiesFromText(ByVal importFileName As String, ByVal fileName As String) As Integer
+        Return Worker.ImportPropertiesFromText(importFileName, fileName)
+    End Function
+End Class
+
+

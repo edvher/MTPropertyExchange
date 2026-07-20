@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <!--   VSdocman config file for current project/solution.-->
+  <activeProfile>default</activeProfile>
+  <appSettings>
+    <add key="VBdocman_MT_PropertyExchange.dll"><![CDATA[default]]></add>
+    <add key="VBdocman_MT_PropertyExchange.exe"><![CDATA[default]]></add>
+    <add key="VBdocman_CommandLine"><![CDATA[default<notincluded>]]></add>
+  </appSettings>
+</configuration>

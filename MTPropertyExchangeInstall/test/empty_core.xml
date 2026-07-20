@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Properties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Property Name="creator" Value="" />
+  <Property Name="category" Value="" />
+  <Property Name="description" Value="" />
+  <Property Name="keywords" Value="" />
+  <Property Name="subject" Value="" />
+  <Property Name="title" Value="" />
+</Properties>

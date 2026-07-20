@@ -1,0 +1,112 @@
+﻿
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   Office document property exchange utility                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Usage: MT_PropertyExchange.exe -mode=<modeswitch> <arguments>
+
+general arguments:
+      -v                                      ... return program version string
+      -loglevel=ERROR|WARN|INFO|DEBUG|OFF     ... sets the logging level
+      -logfile=<Path to resulting logfile>
+      -clearlog                               ... clears the logfile, if it already exists
+                                                
+      -help                                   ... shows this help
+      -help-dll                               ... shows dll interface definitions
+      -help-encodings                         ... list text-encodings
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+-mode=d (or delete): Delete property from document
+   arguments:
+      -file=<Path to office document>
+      -prop=<Property name> or -property=<Property name>
+   returns:
+      errorlevel 0 if succesful,
+      errorlevel <> 0 and error message in error stream otherwise
+   example: 
+       MT_PropertyExchange.exe -mode=d -prop=title1 -file="D:\My documents\wd2010.docx"      
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+-mode=e (or export): Export a document's properties to XML file
+   arguments:
+      -file=<Path to office document>
+   returns:
+      path and filename of created export file
+      errorlevel 0 if succesful,
+      errorlevel <> 0 and error message in error stream otherwise      
+   examples: 
+       MT_PropertyExchange.exe -mode=e -file="D:\My documents\worddoc.docx"      
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+-mode=g (or getallproperties): Export a document's properties to Unicode text file
+   arguments:
+      -file=<Path to office document>
+      -delim=<delimiter char> (optional, default = @| )   
+   returns:
+      path and filename of created export file.
+      errorlevel 0 if succesful,
+      errorlevel <> 0 and error message in error stream otherwise      
+   examples: 
+       MT_PropertyExchange.exe -mode=g -file="D:\My documents\worddoc.docx"       
+       MT_PropertyExchange.exe -mode=g -file="D:\My documents\worddoc.docx" -delim=$      
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+-mode=i (or import): Import properties from xml document
+   arguments:
+      -file=<Path to office document>
+      -xml=<Path to xml properties file>
+      -txt=<Path to txt properties file>
+      -encoding="utf-8" (default) or "iso-8859-1"
+      -help-enc ... list text-encodings
+   returns:
+      errorlevel 0 if succesful,
+      errorlevel <> 0 and error message in error stream otherwise      
+   example: 
+      MT_PropertyExchange.exe -help-enc
+       MT_PropertyExchange.exe -mode=i -file="D:\My documents\wd2010.docx" -xml="D:\My documents\properties.xml"
+       MT_PropertyExchange.exe -mode=i -file="D:\My documents\wd2010.docx" -txt="PropertyUpdateFile.txt" -encoding="iso-8859-1"
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+-mode=m (or macro): Execute macro
+   arguments:
+      -file=<Path to office document>
+      -macro=<Macro name>
+      -template=<Path to addin containing macro code> (Excel documents only!)
+      -visible ... makes Word/Excel visible during macro execution
+   returns:
+      errorlevel 0 if succesful,
+      errorlevel <> 0 and error message in error stream otherwise
+   example: 
+       MT_PropertyExchange.exe -mode=m -template="macros.xslm" -macro=TestMacro -file="D:\My documents\xl2010.xlsx"      
+       MT_PropertyExchange.exe -mode=m -macro=TestMacro -file=word.doc   -visible
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+-mode=n (or getpropertynames): Get list of property names
+   arguments:
+      -file=<Path to office document>
+      -delim=<delimiter char> (optional, default = carriage return & new line)
+   returns:
+      delimited list of defined properties.
+      errorlevel 0 if succesful,
+      errorlevel <> 0 and error message in error stream otherwise      
+   examples: 
+       MT_PropertyExchange.exe -mode=n -file="D:\My documents\worddoc.docx"      
+       MT_PropertyExchange.exe -mode=n -file="D:\My documents\worddoc.docx" -delim=$      
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+-mode=r (or read): Read property from document
+   arguments:
+      -file=<Path to office document>
+      -prop=<Property name> or -property=<Property name>
+   returns:
+      errorlevel 0 and
+      property value on primary output stream
+   example: 
+       MT_PropertyExchange.exe -mode=r -prop=title1 -file="D:\My documents\wd2010.docx"      
+       MT_PropertyExchange.exe -mode=r -prop=* -file="D:\My documents\wd2010.docx"      
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+-mode=w (or write): Write property to document
+   arguments:
+      -file=<Path to office document>
+      -prop=<Property name> or -property=<Property name>
+      -val=<Property value> or -value=<Property value>
+   returns:
+      errorlevel 0 if succesful,
+      errorlevel <> 0 and error message in error stream otherwise
+   examples: 
+       MT_PropertyExchange.exe -mode=w -prop=title1 -val="This is TITLE4" -file="D:\My documents\worddoc.docx"      
+       MT_PropertyExchange.exe -mode=w -property=keywords -value="Word 1,Word 2,Word 3" -file="worddoc.doc"      
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────── 

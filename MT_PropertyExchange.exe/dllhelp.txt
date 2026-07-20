@@ -1,0 +1,75 @@
+﻿
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                               Office document property exchange utility DLL                                 │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+ MT_PropertyExchangeDLL.dll via COM or managed in .NET
+
+ Interfaced Class: Globals
+
+  Function WriteProperty( fileName,  propertyName,  propertyValue )
+    Write property to document. Returns Error Code.
+
+  Function ReadProperty( fileName,  propertyName )
+    Read property from document. Returns property value.
+
+  Function ExportProperties( fileName )
+    Export a document's properties to XML file. Returns path and filename of generated xml export file.
+
+  Function ImportProperties( importFileName,  fileName )
+    Import properties from xml document. Returns Error Code.
+    
+  Function ImportPropertiesFromText(importFileName, fileName)   
+   Import properties from utf-8 encoded text file.    
+    
+  Function ImportPropertiesFromText(importFileName, fileName, encoding)   
+   Import properties from <encoding> encoded text file. (e.g iso-8859-1)        
+    
+  Function GetAllProperties( fileName )
+    Returns a document's defined property names, delimited by "@".
+
+  Function GetAllProperties( fileName, delim )
+    Returns a document's defined property names. Custom deliminator can be provided.
+
+  Function GetAllCusProperties( fileName )
+      Export a document's properties to Unicode Text file and returns path and filename of generated file.
+      Each line consists of property name and property value, delimited by "@|".
+
+  Function GetAllCusProperties( fileName, delim )
+      Export a document's properties to Unicode Text file and returns path and filename of generated file.
+      Each line consists of property name and property value. Custom delimiter can be provided.
+   
+  Property prAllProp
+      String that holds path and filename of generated text file after execution of GetAllCusProperties.
+
+  Function DeleteProperty( fileName,  propertyName )
+   Delete property from document. Returns Error Code.
+
+  Function RunMacro( fileName,  macroName,  template )
+  Function RunMacro( fileName,  macroName )
+    Execute macro. Returns Error Code.
+    
+  Sub SetLogfile( logfile )
+   Set path to logfile.
+   
+  Sub ClearLogfile()
+   Reinitialize logfile. (clear contents)
+   
+  Sub SetLogLevel( loglevel )
+    Set logging level (DEBUG, INFO, WARN, ERROR, FATAL)
+  
+  Function Version()
+   Return program version.
+
+  Error Codes
+         0 : Success.
+        -1 : Unknown error.
+      9000 : File could not be found.
+      9001 : File could be found, but is read only.
+      9002 : Unable to convert property to valid value.
+      9003 : General automation error.
+      9004 : Unknown file extension.
+      9007 : Office macro could not be found or executed.
+      9008 : File seems to be in use.
+      9009 : Could not read file with encoding provided.
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────── 
