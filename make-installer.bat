@@ -1,0 +1,81 @@
+@echo off
+:: ==========================================================================
+::  Builds ONE self-extracting installer EXE from the staged payload:
+::     Install\MTPropertyExchangeInstall-<timestamp>.exe
+::
+::  Prerequisites (see 7-zip\README.md):
+::    - the solution and Dsofile are built (Release) and stage.bat has run
+::      (this script runs stage.bat itself)
+::    - 7-Zip installed (or 7z.exe placed in the 7-zip\ folder)
+::    - 7zSD.sfx from the "7-Zip Extra" package placed in the 7-zip\ folder
+:: ==========================================================================
+setlocal
+pushd "%~dp0"
+set RC=0
+
+echo.
+echo === Step 1/3: staging installer payload =============================
+call MTPropertyExchangeInstall\stage.bat
+if errorlevel 1 (
+   echo ERROR: staging failed - build the solutions first, see README.md.
+   set RC=1
+   goto ende
+)
+
+echo.
+echo === Step 2/3: locating 7-Zip ========================================
+set SEVENZIP=
+if exist "%ProgramFiles%\7-Zip\7z.exe" set SEVENZIP=%ProgramFiles%\7-Zip\7z.exe
+if defined SEVENZIP goto have7z
+if not defined ProgramFiles(x86) goto try_local
+if exist "%ProgramFiles(x86)%\7-Zip\7z.exe" set SEVENZIP=%ProgramFiles(x86)%\7-Zip\7z.exe
+if defined SEVENZIP goto have7z
+:try_local
+if exist "7-zip\7z.exe" set SEVENZIP=7-zip\7z.exe
+if defined SEVENZIP goto have7z
+for %%i in (7z.exe) do if not "%%~$PATH:i"=="" set SEVENZIP=%%~$PATH:i
+if defined SEVENZIP goto have7z
+echo ERROR: 7z.exe not found. Install 7-Zip or copy 7z.exe+7z.dll into 7-zip\.
+set RC=1
+goto ende
+:have7z
+echo Using: %SEVENZIP%
+
+if exist "7-zip\7zSD.sfx" goto havesfx
+echo ERROR: 7-zip\7zSD.sfx not found.
+echo Download the "7-Zip Extra" package from https://www.7-zip.org/download.html
+echo and copy 7zSD.sfx into the 7-zip\ folder. See 7-zip\README.md.
+set RC=1
+goto ende
+:havesfx
+
+echo.
+echo === Step 3/3: packing self-extracting installer =====================
+if exist MTPropertyExchangeInstall.7z del MTPropertyExchangeInstall.7z
+"%SEVENZIP%" a -mx=9 MTPropertyExchangeInstall.7z MTPropertyExchangeInstall\
+if errorlevel 1 (
+   echo ERROR: packing the payload failed.
+   set RC=1
+   goto ende
+)
+
+for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HH-mm-ss"') do set TS=%%i
+if "%TS%"=="" set TS=unknown-date
+
+mkdir Install 2>NUL
+copy /b "7-zip\7zSD.sfx" + "7-zip\MTPE_sfx_config.txt" + MTPropertyExchangeInstall.7z "Install\MTPropertyExchangeInstall-%TS%.exe" >NUL
+if errorlevel 1 (
+   echo ERROR: could not assemble the SFX exe.
+   set RC=1
+   goto ende
+)
+del MTPropertyExchangeInstall.7z
+
+echo.
+echo SUCCESS: Install\MTPropertyExchangeInstall-%TS%.exe
+echo This single file is the complete installer - copy it to a target
+echo machine and double-click it.
+
+:ende
+popd
+endlocal & exit /b %RC%

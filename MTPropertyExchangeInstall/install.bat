@@ -8,6 +8,10 @@ cls
 ::  views on 64-bit Windows, so that 32-bit callers (legacy SAP GUI, SEAL
 ::  scripts) and 64-bit callers (SAP Business Client 64-bit) both work.
 ::
+::  Every step is written to a log file (%TEMP%\MT_PropertyExchange_install.log).
+::  The window turns GREEN when everything succeeded, RED when something
+::  failed (the full log is then shown), and waits for ENTER before closing.
+::
 ::  Expected payload layout (created by stage.bat from the build output):
 ::     install.bat, uninstall.bat
 ::     bin\   PropertyExchange.exe, MT_PropertyExchangeDLL.dll, CommandLine.dll,
@@ -23,6 +27,8 @@ cls
 ::     install.bat /register     ... (re-)register only
 :: ==========================================================================
 
+set LOGFILE=%TEMP%\MT_PropertyExchange_install.log
+
 :: BatchGotAdmin
 :-------------------------------------
 REM  --> Check for permissions
@@ -35,11 +41,17 @@ goto gotAdmin
 
 :UACPrompt
     echo Requesting administrative privileges...
+    rem Copy the payload to a stable folder first: when started from the
+    rem self-extracting installer the extraction folder disappears as soon
+    rem as this (non-elevated) instance returns.
+    set STAGE_DIR=%TEMP%\MTPE_Setup
+    rmdir /q /s "%STAGE_DIR%" 2>NUL
+    xcopy /E /I /Q /Y "%~dp0*" "%STAGE_DIR%\" >NUL
     echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
-    if "%1" == "" echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
-    if "%1" == "/u" echo UAC.ShellExecute "%~s0", "/u", "", "runas", 1 >> "%temp%\getadmin.vbs"
-    if "%1" == "/unregister" echo UAC.ShellExecute "%~s0", "/unregister", "", "runas", 1 >> "%temp%\getadmin.vbs"
-    if "%1" == "/register" echo UAC.ShellExecute "%~s0", "/register", "", "runas", 1 >> "%temp%\getadmin.vbs"
+    if "%1" == "" echo UAC.ShellExecute "%STAGE_DIR%\install.bat", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
+    if "%1" == "/u" echo UAC.ShellExecute "%STAGE_DIR%\install.bat", "/u", "", "runas", 1 >> "%temp%\getadmin.vbs"
+    if "%1" == "/unregister" echo UAC.ShellExecute "%STAGE_DIR%\install.bat", "/unregister", "", "runas", 1 >> "%temp%\getadmin.vbs"
+    if "%1" == "/register" echo UAC.ShellExecute "%STAGE_DIR%\install.bat", "/register", "", "runas", 1 >> "%temp%\getadmin.vbs"
     "%temp%\getadmin.vbs"
     exit /B
 
@@ -52,14 +64,23 @@ goto gotAdmin
 :start
    pushd "%~dp0"
    set INSTALL_ROOT=%CD%
-   mode con lines=50 cols=100
+   set ERRORS=0
+   mode con lines=54 cols=100
    color 8F
 
+    > "%LOGFILE%" echo ================================================================
+   >>"%LOGFILE%" echo  MT_PropertyExchange installer log
+   >>"%LOGFILE%" echo  Date ......: %DATE% %TIME%
+   >>"%LOGFILE%" echo  User ......: %USERNAME%   Computer: %COMPUTERNAME%
+   >>"%LOGFILE%" echo  Source ....: %INSTALL_ROOT%
+   >>"%LOGFILE%" echo  Argument ..: %1
+   >>"%LOGFILE%" echo ================================================================
+
    echo.
-   if "%1" == "" echo Installation of MT_PropertyExchange toolkit
-   if "%1" == "/u" echo Uninstall MT_PropertyExchange toolkit
-   if "%1" == "/unregister" echo Unregistering COM components
-   if "%1" == "/register" echo Registering COM components
+   if "%1" == "" call :log Installation of MT_PropertyExchange toolkit
+   if "%1" == "/u" call :log Uninstall MT_PropertyExchange toolkit
+   if "%1" == "/unregister" call :log Unregistering COM components
+   if "%1" == "/register" call :log Registering COM components
    echo.
 
    set TARGET_DIR=%ProgramFiles%\Siemens\MT_PropertyExchange
@@ -70,9 +91,17 @@ goto gotAdmin
 
    set IS64=NO
    if defined ProgramFiles(x86) set IS64=YES
+   call :log Target folder: "%TARGET_DIR%"  -  64-bit Windows: %IS64%
 
-   if not exist "%REGASM32%" echo WARNING: 32-bit .NET Framework 4.x regasm.exe not found.
-   if "%IS64%"=="YES" if not exist "%REGASM64%" echo WARNING: 64-bit .NET Framework 4.x regasm.exe not found.
+   if exist "%REGASM32%" goto regasm32ok
+   set /a ERRORS+=1
+   call :log ERROR - 32-bit .NET Framework 4.x regasm.exe not found.
+:regasm32ok
+   if "%IS64%"=="NO" goto regasmchecked
+   if exist "%REGASM64%" goto regasmchecked
+   set /a ERRORS+=1
+   call :log ERROR - 64-bit .NET Framework 4.x regasm.exe not found.
+:regasmchecked
 
    if "%1"=="/u" goto unreg
    if "%1"=="/unregister" goto unreg
@@ -83,93 +112,128 @@ REM  Full installation: unregister old state, copy files, register, test
 REM ==========================================================================
 :install
    if exist "%INSTALL_ROOT%\bin\PropertyExchange.exe" goto payloadok
-   color C0
-   echo.
-   echo ERROR: installer payload is incomplete ("bin\PropertyExchange.exe" not found).
-   echo Run MTPropertyExchangeInstall\stage.bat after building, then retry.
-   echo.
-   pause
-   goto ende
+   set /a ERRORS+=1
+   call :log ERROR - installer payload is incomplete: "bin\PropertyExchange.exe" not found.
+   call :log Run MTPropertyExchangeInstall\stage.bat after building, then retry.
+   goto summary
 :payloadok
    call :dounreg
 
 :copyfiles
    echo.
-   echo Copying toolkit to "%TARGET_DIR%" ...
+   call :log Copying toolkit to "%TARGET_DIR%" ...
    mkdir "%TARGET_DIR%" 2>NUL
-   xcopy /Y /C /Q "%INSTALL_ROOT%\bin\*.*" "%TARGET_DIR%\"
-   xcopy /Y /C /Q /I "%INSTALL_ROOT%\x86\*.*" "%TARGET_DIR%\x86\"
-   if "%IS64%"=="YES" xcopy /Y /C /Q /I "%INSTALL_ROOT%\x64\*.*" "%TARGET_DIR%\x64\"
-   echo Copying finished.
+   >>"%LOGFILE%" echo --- xcopy bin ---
+   xcopy /Y /C /F "%INSTALL_ROOT%\bin\*.*" "%TARGET_DIR%\" >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying program files failed.) else (call :log   OK - program files copied.)
+   >>"%LOGFILE%" echo --- xcopy x86 ---
+   xcopy /Y /C /F /I "%INSTALL_ROOT%\x86\*.*" "%TARGET_DIR%\x86\" >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying x86 dsofile failed.) else (call :log   OK - x86 dsofile.dll copied.)
+   if "%IS64%"=="NO" goto copydone
+   >>"%LOGFILE%" echo --- xcopy x64 ---
+   xcopy /Y /C /F /I "%INSTALL_ROOT%\x64\*.*" "%TARGET_DIR%\x64\" >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying x64 dsofile failed.) else (call :log   OK - x64 dsofile.dll copied.)
+:copydone
 
 :reg
    echo.
-   echo Registering COM components ...
+   call :log Registering COM components ...
 
    if "%IS64%"=="NO" goto reg32only
 
    rem ---- 64-bit Windows: register in BOTH registry views --------------------
-   if exist "%TARGET_DIR%\x64\dsofile.dll" echo   dsofile.dll (x64, 64-bit registry view)
-   if exist "%TARGET_DIR%\x64\dsofile.dll" "%REGSVR_NATIVE%" /s "%TARGET_DIR%\x64\dsofile.dll"
-   if not exist "%TARGET_DIR%\x64\dsofile.dll" echo   WARNING: x64\dsofile.dll missing - 64-bit clients cannot use .doc/.xls files!
+   if not exist "%TARGET_DIR%\x64\dsofile.dll" goto regdso64missing
+   >>"%LOGFILE%" echo --- regsvr32 x64 dsofile ---
+   "%REGSVR_NATIVE%" /s "%TARGET_DIR%\x64\dsofile.dll"
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - registering dsofile.dll x64 failed.) else (call :log   OK - dsofile.dll registered in 64-bit view.)
+   goto regdso32
+:regdso64missing
+   set /a ERRORS+=1
+   call :log   ERROR - x64\dsofile.dll missing. 64-bit clients cannot use .doc/.xls files.
 
-   if exist "%TARGET_DIR%\x86\dsofile.dll" echo   dsofile.dll (x86, 32-bit registry view)
-   if exist "%TARGET_DIR%\x86\dsofile.dll" "%REGSVR_WOW%" /s "%TARGET_DIR%\x86\dsofile.dll"
-   if not exist "%TARGET_DIR%\x86\dsofile.dll" echo   WARNING: x86\dsofile.dll missing - 32-bit clients cannot use .doc/.xls files!
+:regdso32
+   if not exist "%TARGET_DIR%\x86\dsofile.dll" goto regdso32missing
+   >>"%LOGFILE%" echo --- regsvr32 x86 dsofile ---
+   "%REGSVR_WOW%" /s "%TARGET_DIR%\x86\dsofile.dll"
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - registering dsofile.dll x86 failed.) else (call :log   OK - dsofile.dll registered in 32-bit view.)
+   goto regnet
+:regdso32missing
+   set /a ERRORS+=1
+   call :log   ERROR - x86\dsofile.dll missing. 32-bit clients cannot use .doc/.xls files.
 
-   if not exist "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" goto regdone
-   echo   MT_PropertyExchangeDLL.dll (64-bit registry view)
-   if exist "%REGASM64%" "%REGASM64%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo
-   echo   MT_PropertyExchangeDLL.dll (32-bit registry view)
-   if exist "%REGASM32%" "%REGASM32%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo
+:regnet
+   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" goto regnetdo
+   set /a ERRORS+=1
+   call :log   ERROR - MT_PropertyExchangeDLL.dll not found in target folder.
+   goto regdone
+:regnetdo
+   >>"%LOGFILE%" echo --- regasm 64-bit ---
+   "%REGASM64%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - regasm 64-bit failed.) else (call :log   OK - MT_PropertyExchangeDLL registered in 64-bit view.)
+   >>"%LOGFILE%" echo --- regasm 32-bit ---
+   "%REGASM32%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - regasm 32-bit failed.) else (call :log   OK - MT_PropertyExchangeDLL registered in 32-bit view.)
    goto regdone
 
 :reg32only
    rem ---- 32-bit Windows ------------------------------------------------------
-   if exist "%TARGET_DIR%\x86\dsofile.dll" echo   dsofile.dll (x86)
-   if exist "%TARGET_DIR%\x86\dsofile.dll" "%REGSVR_NATIVE%" /s "%TARGET_DIR%\x86\dsofile.dll"
+   if not exist "%TARGET_DIR%\x86\dsofile.dll" goto reg32dsomissing
+   >>"%LOGFILE%" echo --- regsvr32 x86 dsofile ---
+   "%REGSVR_NATIVE%" /s "%TARGET_DIR%\x86\dsofile.dll"
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - registering dsofile.dll failed.) else (call :log   OK - dsofile.dll registered.)
+   goto reg32net
+:reg32dsomissing
+   set /a ERRORS+=1
+   call :log   ERROR - x86\dsofile.dll missing.
+:reg32net
    if not exist "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" goto regdone
-   echo   MT_PropertyExchangeDLL.dll
-   if exist "%REGASM32%" "%REGASM32%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo
+   >>"%LOGFILE%" echo --- regasm 32-bit ---
+   "%REGASM32%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - regasm failed.) else (call :log   OK - MT_PropertyExchangeDLL registered.)
 
 :regdone
-   echo Registration finished.
-   if "%1"=="/register" goto fine
+   call :log Registration finished.
+   if "%1"=="/register" goto summary
 
 REM ==========================================================================
 :test
    echo.
-   echo Quick test: COM activation check.
+   call :log Quick test: COM activation check ...
    mkdir "%TARGET_DIR%\Test" 2>NUL
    xcopy /Q /S /Y "%INSTALL_ROOT%\test\*.*" "%TARGET_DIR%\Test\" 1>nul 2>nul
-   call "%TARGET_DIR%\Test\test-com.bat"
-   IF "%ERRORLEVEL%"=="0" COLOR 2F
-   echo.
-   echo End of test.
-   goto fine
+   call "%TARGET_DIR%\Test\test-com.bat" > "%TEMP%\mtpe_testcom.out" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - COM activation test FAILED.) else (call :log   OK - COM activation test passed.)
+   type "%TEMP%\mtpe_testcom.out"
+   type "%TEMP%\mtpe_testcom.out" >> "%LOGFILE%"
+   del "%TEMP%\mtpe_testcom.out" 2>NUL
+   goto summary
 
 REM ==========================================================================
 :unreg
    call :dounreg
-   if "%1"=="/unregister" goto fine
+   if "%1"=="/unregister" goto summary
    if "%1"=="/u" goto uninstall
-   goto fine
+   goto summary
 
 :uninstall
-   echo Removing "%TARGET_DIR%" ...
-   if exist "%TARGET_DIR%" rmdir /q /s "%TARGET_DIR%"
-   goto fine
+   call :log Removing "%TARGET_DIR%" ...
+   if exist "%TARGET_DIR%" rmdir /q /s "%TARGET_DIR%" >>"%LOGFILE%" 2>&1
+   if exist "%TARGET_DIR%" (set /a ERRORS+=1 & call :log   ERROR - could not remove target folder, files may be in use.) else (call :log   OK - target folder removed.)
+   goto summary
 
 REM ==========================================================================
-REM  Subroutine: unregister everything (current and legacy locations)
+REM  Subroutine: unregister everything (current and legacy locations).
+REM  Failures here are logged but NOT counted as errors - on a first
+REM  installation there is simply nothing to unregister.
 REM ==========================================================================
 :dounreg
    echo.
-   echo Unregistering COM components (previous installations) ...
+   call :log Unregistering COM components of previous installations ...
+   >>"%LOGFILE%" echo --- unregister pass ---
 
-   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" if exist "%REGASM32%" "%REGASM32%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo /unregister 2>NUL
+   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" if exist "%REGASM32%" "%REGASM32%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo /unregister >>"%LOGFILE%" 2>&1
    if "%IS64%"=="NO" goto dounreg_dso
-   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" if exist "%REGASM64%" "%REGASM64%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo /unregister 2>NUL
+   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" if exist "%REGASM64%" "%REGASM64%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo /unregister >>"%LOGFILE%" 2>&1
 
 :dounreg_dso
    rem new locations
@@ -182,14 +246,40 @@ REM ==========================================================================
    rem legacy location: dsofile.dll flat in the target dir (old installer)
    if exist "%TARGET_DIR%\dsofile.dll" "%REGSVR_NATIVE%" /s /u "%TARGET_DIR%\dsofile.dll" 2>NUL
    if "%IS64%"=="YES" if exist "%TARGET_DIR%\dsofile.dll" "%REGSVR_WOW%" /s /u "%TARGET_DIR%\dsofile.dll" 2>NUL
-   echo Unregistering finished.
+   call :log Unregister pass finished.
    goto :EOF
 
 REM ==========================================================================
-:fine
+REM  Subroutine: write a line to screen AND log file
+REM ==========================================================================
+:log
+   echo %*
+   >>"%LOGFILE%" echo %*
+   goto :EOF
+
+REM ==========================================================================
+:summary
    echo.
-   echo Done. This window will close in a few seconds...
-   timeout /t 5 >NUL 2>NUL
+   echo ================================================================
+   if %ERRORS%==0 goto sum_ok
+   color CF
+   call :log RESULT: FAILED - %ERRORS% error/s occurred.
+   echo ================================================================
+   echo.
+   echo -------- full log --------
+   type "%LOGFILE%"
+   echo --------------------------
+   goto sum_end
+:sum_ok
+   color 2F
+   call :log RESULT: SUCCESS - all steps completed without errors.
+   echo ================================================================
+:sum_end
+   echo.
+   echo The full log was saved to:
+   echo    %LOGFILE%
+   echo.
+   set /p DUMMY=Press ENTER to close this window ...
    popd 2>NUL
 
 :ende

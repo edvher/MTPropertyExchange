@@ -65,6 +65,10 @@ Steps (order matters — the C++ component provides the type library interop):
    see `lib/README.md` if that step needs to be run manually.
 3. Stage the installer payload:
    run `MTPropertyExchangeInstall\stage.bat`.
+4. *(optional)* Build a **single self-extracting installer EXE**:
+   run `make-installer.bat` → `Install\MTPropertyExchangeInstall-<timestamp>.exe`.
+   One-time prerequisites (7-Zip + the `7zSD.sfx` module) are described in
+   `7-zip\README.md`.
 
 Or from a VS 2022 *Developer Command Prompt*:
 
@@ -73,12 +77,23 @@ msbuild Dsofile\dsofile.sln /p:Configuration=Release /p:Platform=x86
 msbuild Dsofile\dsofile.sln /p:Configuration=Release /p:Platform=x64
 msbuild /restore MsoPropertyTransferUtils3.5.sln "/p:Configuration=Release;Platform=Any CPU"
 MTPropertyExchangeInstall\stage.bat
+make-installer.bat
 ```
 
 ## Installing
 
-Copy the whole `MTPropertyExchangeInstall` folder (after `stage.bat`) to the
-target machine and run `install.bat` as administrator. It
+**Single file:** copy `Install\MTPropertyExchangeInstall-<timestamp>.exe` to the
+target machine and double-click it — it extracts itself and starts the
+installer (UAC elevation is requested automatically).
+
+**Folder:** alternatively copy the whole `MTPropertyExchangeInstall` folder
+(after `stage.bat`) to the target machine and run `install.bat` as
+administrator.
+
+Either way the installer writes a full step-by-step log to
+`%TEMP%\MT_PropertyExchange_install.log`, ends with a **green** console on
+success or a **red** console (plus the full log on screen) on failure, and
+waits for ENTER before closing. It
 
 1. unregisters any previous installation (old single-bitness setups included),
 2. copies the toolkit to `%ProgramFiles%\Siemens\MT_PropertyExchange`,
