@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <StartupObject>Sub Main</StartupObject>
     <RootNamespace>MT_PropertyExchange</RootNamespace>
-    <AssemblyName>PropertyExchange</AssemblyName>
+    <AssemblyName>MT_PropertyExchange</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <MyType>Console</MyType>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>

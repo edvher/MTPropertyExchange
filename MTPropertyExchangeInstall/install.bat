@@ -14,7 +14,7 @@ cls
 ::
 ::  Expected payload layout (created by stage.bat from the build output):
 ::     install.bat, uninstall.bat
-::     bin\   PropertyExchange.exe, MT_PropertyExchangeDLL.dll, CommandLine.dll,
+::     bin\   MT_PropertyExchange.exe, MT_PropertyExchangeDLL.dll, CommandLine.dll,
 ::            Interop.Dsofile.dll, log4net.dll, MT_PropertyExchangeLog.config, ...
 ::     x86\   dsofile.dll   (32-bit build)
 ::     x64\   dsofile.dll   (64-bit build)
@@ -128,9 +128,9 @@ REM ==========================================================================
 REM  Full installation: unregister old state, copy files, register, test
 REM ==========================================================================
 :install
-   if exist "%INSTALL_ROOT%\bin\PropertyExchange.exe" goto payloadok
+   if exist "%INSTALL_ROOT%\bin\MT_PropertyExchange.exe" goto payloadok
    set /a ERRORS+=1
-   call :log ERROR - installer payload is incomplete: "bin\PropertyExchange.exe" not found.
+   call :log ERROR - installer payload is incomplete: "bin\MT_PropertyExchange.exe" not found.
    call :log Run MTPropertyExchangeInstall\stage.bat after building, then retry.
    goto summary
 :payloadok
@@ -146,6 +146,16 @@ REM ==========================================================================
 
 :copyfiles
    echo.
+   if not exist "%TARGET_DIR%" goto docopy
+   rem The target folder already exists (previous installation, possibly a
+   rem mix of packages). Remove it completely so the installation is clean.
+   call :log Target folder already exists - removing it for a clean installation ...
+   rmdir /s /q "%TARGET_DIR%" 2>NUL
+   if not exist "%TARGET_DIR%" goto docopy
+   set /a ERRORS+=1
+   call :log ERROR - cannot remove the existing folder, files are in use. Close SAP, Word/Excel and other programs using the toolkit, then run the installer again. The log lists the locking processes.
+   goto summary
+:docopy
    call :log Copying toolkit to "%TARGET_DIR%" ...
    mkdir "%TARGET_DIR%" 2>NUL
    >>"%LOGFILE%" echo --- xcopy bin ---
@@ -312,7 +322,7 @@ REM ==========================================================================
    rem e.g. in SAP customizing or scripts, keeps working via a junction
    rem that points to the real installation folder.
    mklink /J "%LEGACY_DIR%" "%TARGET_DIR%" >NUL 2>NUL
-   if exist "%LEGACY_DIR%\PropertyExchange.exe" (call :log   OK - compatibility link created: the old x86 path now points to the new folder.) else (call :log   NOTE - compatibility link could not be created; old hard-coded x86 paths would not work.)
+   if exist "%LEGACY_DIR%\MT_PropertyExchange.exe" (call :log   OK - compatibility link created: the old x86 path now points to the new folder.) else (call :log   NOTE - compatibility link could not be created; old hard-coded x86 paths would not work.)
    goto cleanup_reg
 :cleanup_locked
    call :log   WARNING - could not remove it completely, files may be locked. Delete it manually.

@@ -8,7 +8,7 @@ the business context and the main `README.md` for build/install steps.*
 ```mermaid
 flowchart TD
     SAP["SAP GUI / SAP Business Client<br/>(COM: CreateObject)"] --> DLL
-    CLI["PropertyExchange.exe<br/>(command line)"] --> DLL
+    CLI["MT_PropertyExchange.exe<br/>(command line)"] --> DLL
     SEAL["SEAL DPF conversion server<br/>(perl scripts)"] --> CLI
     DLL["MT_PropertyExchangeDLL.dll<br/>VB.NET, AnyCPU, COM-visible<br/>ProgID: MT_PropertyExchange.Globals"]
     DLL -->|".docx .xlsx .xlsm ..."| OPC["FilePropIO2007<br/>System.IO.Packaging (pure .NET)"]
@@ -20,7 +20,7 @@ flowchart TD
 | Assembly / binary | Project | Role |
 |---|---|---|
 | `MT_PropertyExchangeDLL.dll` | `MT_PropertyExchange.dll/` (VB.NET) | Core library, exposed to COM. Strong-named (`key.snk`), registered with `regasm /codebase /tlb`. |
-| `PropertyExchange.exe` | `MT_PropertyExchange.exe/` (VB.NET) | Console wrapper; maps `-mode=...` switches onto the DLL API. |
+| `MT_PropertyExchange.exe` | `MT_PropertyExchange.exe/` (VB.NET) | Console wrapper; maps `-mode=...` switches onto the DLL API. |
 | `CommandLine.dll` | `CommandLine/` (C#) | Command-line parsing helper used by the exe. |
 | `dsofile.dll` | `Dsofile/` (C++) | Microsoft "DSO OLE Document Properties Reader 2.1". Native in-proc COM server; reads/writes OLE structured-storage property sets. Built for **Win32 and x64**. |
 | `Interop.Dsofile.dll` | generated (`lib/`) | tlbimp-generated interop for dsofile, signed with `Dsofile/dsofile_key.snk` (a strong-named assembly may only reference strong-named assemblies). MSIL/AnyCPU. |
@@ -49,7 +49,7 @@ flowchart TD
 
 ### Error codes (`Globals.Errors`)
 
-Also set as the **process exit code** of `PropertyExchange.exe`.
+Also set as the **process exit code** of `MT_PropertyExchange.exe`.
 
 | Code | Meaning |
 |---|---|
@@ -135,7 +135,7 @@ installed assembly (probe order: CWD → assembly folder →
 |---|---|---|
 | `MT_PropertyExchangeDLL.dll` | AnyCPU (one file) | `regasm /codebase /tlb` run **twice**: `Framework64\v4.0.30319` (64-bit view) and `Framework\v4.0.30319` (32-bit view) |
 | `dsofile.dll` | two builds: `x86\` and `x64\` | `System32\regsvr32` for x64, `SysWOW64\regsvr32` for x86 — same CLSID, once per registry view |
-| `PropertyExchange.exe` | AnyCPU, `Prefer32Bit=false` | n/a (runs 64-bit on 64-bit Windows, hence uses the x64 dsofile) |
+| `MT_PropertyExchange.exe` | AnyCPU, `Prefer32Bit=false` | n/a (runs 64-bit on 64-bit Windows, hence uses the x64 dsofile) |
 | Word/Excel automation | out-of-process | independent of caller/Office bitness |
 
 A 64-bit client resolves `MT_PropertyExchange.Globals` in the 64-bit registry

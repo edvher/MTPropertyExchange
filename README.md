@@ -7,8 +7,8 @@ other client) uses it in two ways:
 * **COM**: `CreateObject("MT_PropertyExchange.Globals")`
   (CLSID `{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}`) — the primary way the SAP
   frontend calls the toolkit.
-* **Command line**: `PropertyExchange.exe -mode=... -file=...`
-  (run `PropertyExchange.exe -help` for the full reference).
+* **Command line**: `MT_PropertyExchange.exe -mode=... -file=...`
+  (run `MT_PropertyExchange.exe -help` for the full reference).
 
 ## Why this branch exists — 64-bit support
 
@@ -45,7 +45,7 @@ Business Client work side by side on the same machine.
 | Path | Content |
 | --- | --- |
 | `MT_PropertyExchange.dll/` | VB.NET COM-visible class library `MT_PropertyExchangeDLL.dll` — the core. `FilePropIO2007.vb` handles `.docx`/`.xlsx` (pure .NET, `System.IO.Packaging`); `FilePropIO2003.vb` handles `.doc`/`.xls` via the native **dsofile** COM component; `Globals.vb` is the COM entry class. |
-| `MT_PropertyExchange.exe/` | VB.NET console wrapper `PropertyExchange.exe` around the same DLL. |
+| `MT_PropertyExchange.exe/` | VB.NET console wrapper `MT_PropertyExchange.exe` around the same DLL. |
 | `CommandLine/` | C# command-line argument parser used by the exe. |
 | `Dsofile/` | C++ sources of Microsoft's *DSO OLE Document Properties Reader 2.1* (`dsofile.dll`, ProgID `DSOFile.OleDocumentProperties`). Builds x86 **and** x64 via `dsofile.sln` / `dsofile.vcxproj`. |
 | `lib/` | Holds the generated `Interop.Dsofile.dll` (see `lib/README.md`). |
@@ -134,7 +134,7 @@ Logs go to `%TMP%\PropertyExchange.log`
 
 ## Known deviations from the historical build
 
-* `Interactivity.vb` (a WinForms dialog shown when `PropertyExchange.exe` was
+* `Interactivity.vb` (a WinForms dialog shown when `MT_PropertyExchange.exe` was
   started without arguments) is not present in the repository; the exe now
   prints the command-line help instead. SAP integration is unaffected — it
   always calls the COM DLL or the exe with arguments.

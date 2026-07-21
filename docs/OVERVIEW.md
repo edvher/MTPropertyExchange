@@ -28,7 +28,7 @@ Three integration styles are visible in the code:
    `ImportPropertiesFromText`, `GetAllCusProperties`, `RunMacro`. This is the
    path that broke when SAP switched to the **64-bit** Business Client — the
    reason for the current 64-bit port.
-2. **Command line / scripts.** `PropertyExchange.exe` wraps the same
+2. **Command line / scripts.** `MT_PropertyExchange.exe` wraps the same
    functionality for batch use (`-mode=r/w/d/i/e/g/n/m`).
 3. **SEAL Systems conversion server (batch/server use).** The perl scripts in
    `SEAL_Conversion/` are working units for the SEAL DPF ("Digital Process
@@ -76,7 +76,7 @@ the macros that refresh title blocks/sheets from the updated properties.
 | 1 | SAP check-in/check-out: push current SAP attributes into the document | `ImportPropertiesFromText` / `WriteProperty` |
 | 2 | Show/verify document attributes in SAP from the file | `ReadProperty`, `GetAllCusProperties`, `GetAllProperties` |
 | 3 | Refresh the visible title block after attribute changes | `RunMacro` (with the PLM Office add-ins) |
-| 4 | Batch stamping during server-side conversion (SEAL DPF) | `PropertyExchange.exe -mode=i -txt=...` |
+| 4 | Batch stamping during server-side conversion (SEAL DPF) | `MT_PropertyExchange.exe -mode=i -txt=...` |
 | 5 | Housekeeping: clear or delete properties | `DeleteProperty`, import of `empty_*.xml` / `delete_all.xml` |
 
 ## Product lineage (deduced from names, paths and copyrights)

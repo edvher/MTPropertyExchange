@@ -14,8 +14,8 @@ set SRC_DSO_X64=..\Dsofile\bin\x64\Release
 
 set RC=0
 
-if not exist "%SRC_MANAGED%\PropertyExchange.exe" (
-   echo ERROR: %SRC_MANAGED%\PropertyExchange.exe not found. Build MsoPropertyTransferUtils3.5.sln Release^|Any CPU first.
+if not exist "%SRC_MANAGED%\MT_PropertyExchange.exe" (
+   echo ERROR: %SRC_MANAGED%\MT_PropertyExchange.exe not found. Build MsoPropertyTransferUtils3.5.sln Release^|Any CPU first.
    set RC=1
 )
 if not exist "%SRC_DSO_X86%\dsofile.dll" (
