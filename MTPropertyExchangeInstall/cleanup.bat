@@ -22,7 +22,7 @@ goto gotAdmin
 :UACPrompt
     echo Requesting administrative privileges...
     echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
-    echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
+    echo UAC.ShellExecute "%~s0", "%1", "", "runas", 1 >> "%temp%\getadmin.vbs"
     "%temp%\getadmin.vbs"
     exit /B
 :gotAdmin
@@ -31,7 +31,7 @@ goto gotAdmin
 
 :: Escape WOW64 so registry/tools are not redirected
 if not defined PROCESSOR_ARCHITEW6432 goto bitness_ok
-if exist "%WINDIR%\sysnative\cmd.exe" "%WINDIR%\sysnative\cmd.exe" /c ""%~f0"" & exit /b
+if exist "%WINDIR%\sysnative\cmd.exe" "%WINDIR%\sysnative\cmd.exe" /c ""%~f0" %1" & exit /b
 :bitness_ok
 
 color 8F
@@ -46,7 +46,8 @@ echo.
 echo === MT_PropertyExchange complete cleanup ===
 echo.
 echo Close ALL SAP and Office windows now, otherwise files stay locked.
-pause
+rem /auto = no pauses, propagate result via exit code (used by rollback.bat)
+if not "%1"=="/auto" pause
 
 echo.
 echo [1/4] Unregistering COM components ...
@@ -112,4 +113,5 @@ echo RESULT: cleanup complete. The machine is clean - install ONE package
 echo (the official PMT one or ours) before using SAP property exchange again.
 :ende
 echo.
-pause
+if not "%1"=="/auto" pause
+exit /b %FAIL%
