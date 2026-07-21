@@ -241,6 +241,10 @@ REM ==========================================================================
    call :log Removing "%TARGET_DIR%" ...
    if exist "%TARGET_DIR%" rmdir /q /s "%TARGET_DIR%" >>"%LOGFILE%" 2>&1
    if exist "%TARGET_DIR%" (set /a ERRORS+=1 & call :log   ERROR - could not remove target folder, files may be in use.) else (call :log   OK - target folder removed.)
+   rem Remove the compatibility junction at the old x86 path, if present.
+   rem rmdir without /s deletes only a junction or an empty folder - a real
+   rem legacy folder with content is deliberately left alone.
+   if defined ProgramFiles(x86) rmdir /q "%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" 2>NUL
    goto summary
 
 REM ==========================================================================
@@ -287,10 +291,20 @@ REM ==========================================================================
    if defined ProgramFiles(x86) set LEGACY_DIR=%ProgramFiles(x86)%\Siemens\MT_PropertyExchange
    if not defined LEGACY_DIR goto cleanup_reg
    if /I "%LEGACY_DIR%"=="%TARGET_DIR%" goto cleanup_reg
-   if not exist "%LEGACY_DIR%" goto cleanup_reg
+   if not exist "%LEGACY_DIR%" goto cleanup_link
    call :log   Removing obsolete folder "%LEGACY_DIR%" ...
    rmdir /s /q "%LEGACY_DIR%" 2>NUL
-   if exist "%LEGACY_DIR%" (call :log   WARNING - could not remove it completely, files may be locked. Delete it manually.) else (call :log   OK - obsolete folder removed.)
+   if exist "%LEGACY_DIR%" goto cleanup_locked
+   call :log   OK - obsolete folder removed.
+:cleanup_link
+   rem Compatibility link: any old hard-coded reference to the (x86) path,
+   rem e.g. in SAP customizing or scripts, keeps working via a junction
+   rem that points to the real installation folder.
+   mklink /J "%LEGACY_DIR%" "%TARGET_DIR%" >NUL 2>NUL
+   if exist "%LEGACY_DIR%\PropertyExchange.exe" (call :log   OK - compatibility link created: the old x86 path now points to the new folder.) else (call :log   NOTE - compatibility link could not be created; old hard-coded x86 paths would not work.)
+   goto cleanup_reg
+:cleanup_locked
+   call :log   WARNING - could not remove it completely, files may be locked. Delete it manually.
 :cleanup_reg
    rem Orphaned keys of the old DllSurrogate workaround, harmless if absent.
    reg delete "HKCR\Wow6432Node\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /v AppID /f >NUL 2>NUL
