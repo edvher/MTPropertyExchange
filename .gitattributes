@@ -1,0 +1,11 @@
+# Files executed/parsed by Windows tools MUST keep CRLF line endings.
+# cmd.exe mis-executes goto/call in batch files with LF-only endings
+# (execution resumes at wrong file offsets, silently skipping commands).
+# "-text" disables ALL git line-ending conversion: the bytes committed to
+# the repository (CRLF) are delivered unchanged to every checkout and to
+# GitHub ZIP downloads.
+*.bat -text
+*.cmd -text
+*.reg -text
+*.vbs -text
+7-zip/MTPE_sfx_config.txt -text
