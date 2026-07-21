@@ -72,10 +72,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='Win32'">
     <ClCompile>
+      <!-- The original VC6-era build used 4-byte struct packing (/Zp4), but
+           current Windows SDK headers static_assert against non-default
+           packing. Default packing is used instead; the COM interface layout
+           (vtables, automation types) is unaffected by this option. -->
       <PreprocessorDefinitions>WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <!-- The original 32-bit build used 4-byte struct packing; keep it for
-           binary fidelity with the previously shipped x86 dsofile.dll. -->
-      <StructMemberAlignment>4Bytes</StructMemberAlignment>
     </ClCompile>
     <Midl>
       <TargetEnvironment>Win32</TargetEnvironment>
