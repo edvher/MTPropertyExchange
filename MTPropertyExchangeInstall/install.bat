@@ -29,6 +29,16 @@ cls
 
 set LOGFILE=%TEMP%\MT_PropertyExchange_install.log
 
+:: --------------------------------------------------------------------------
+:: Escape WOW64: when started from a 32-bit parent (e.g. the self-extracting
+:: installer stub), this script runs in a 32-bit cmd.exe where %ProgramFiles%
+:: means "Program Files (x86)" and System32 tools are silently redirected to
+:: their 32-bit versions. Relaunch ourselves in the real 64-bit cmd.exe.
+:: --------------------------------------------------------------------------
+if not defined PROCESSOR_ARCHITEW6432 goto bitness_ok
+if exist "%WINDIR%\sysnative\cmd.exe" "%WINDIR%\sysnative\cmd.exe" /c ""%~f0" %1" & exit /b
+:bitness_ok
+
 :: BatchGotAdmin
 :-------------------------------------
 REM  --> Check for permissions
@@ -65,7 +75,6 @@ goto gotAdmin
    pushd "%~dp0"
    set INSTALL_ROOT=%CD%
    set ERRORS=0
-   mode con lines=54 cols=100
    color 8F
 
     > "%LOGFILE%" echo ================================================================
@@ -74,7 +83,11 @@ goto gotAdmin
    >>"%LOGFILE%" echo  User ......: %USERNAME%   Computer: %COMPUTERNAME%
    >>"%LOGFILE%" echo  Source ....: %INSTALL_ROOT%
    >>"%LOGFILE%" echo  Argument ..: %1
+   >>"%LOGFILE%" echo  CmdBitness : PROCESSOR_ARCHITECTURE=%PROCESSOR_ARCHITECTURE% ARCHITEW6432=%PROCESSOR_ARCHITEW6432%
    >>"%LOGFILE%" echo ================================================================
+   >>"%LOGFILE%" echo --- payload inventory (%INSTALL_ROOT%) ---
+   dir /s /b "%INSTALL_ROOT%" >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- end of payload inventory ---
 
    echo.
    if "%1" == "" call :log Installation of MT_PropertyExchange toolkit
@@ -117,6 +130,7 @@ REM ==========================================================================
    call :log Run MTPropertyExchangeInstall\stage.bat after building, then retry.
    goto summary
 :payloadok
+   if defined ProgramFiles(x86) if exist "%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" if /I not "%TARGET_DIR%"=="%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" call :log NOTE - an old installation exists in "Program Files (x86)\Siemens\MT_PropertyExchange". Its registrations are overwritten by this installer; the folder itself can be deleted manually.
    call :dounreg
 
 :copyfiles
@@ -124,16 +138,19 @@ REM ==========================================================================
    call :log Copying toolkit to "%TARGET_DIR%" ...
    mkdir "%TARGET_DIR%" 2>NUL
    >>"%LOGFILE%" echo --- xcopy bin ---
-   xcopy /Y /C /F "%INSTALL_ROOT%\bin\*.*" "%TARGET_DIR%\" >>"%LOGFILE%" 2>&1
+   xcopy /Y /F "%INSTALL_ROOT%\bin\*.*" "%TARGET_DIR%\" >>"%LOGFILE%" 2>&1
    if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying program files failed.) else (call :log   OK - program files copied.)
    >>"%LOGFILE%" echo --- xcopy x86 ---
-   xcopy /Y /C /F /I "%INSTALL_ROOT%\x86\*.*" "%TARGET_DIR%\x86\" >>"%LOGFILE%" 2>&1
+   xcopy /Y /F /I "%INSTALL_ROOT%\x86\*.*" "%TARGET_DIR%\x86\" >>"%LOGFILE%" 2>&1
    if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying x86 dsofile failed.) else (call :log   OK - x86 dsofile.dll copied.)
    if "%IS64%"=="NO" goto copydone
    >>"%LOGFILE%" echo --- xcopy x64 ---
-   xcopy /Y /C /F /I "%INSTALL_ROOT%\x64\*.*" "%TARGET_DIR%\x64\" >>"%LOGFILE%" 2>&1
+   xcopy /Y /F /I "%INSTALL_ROOT%\x64\*.*" "%TARGET_DIR%\x64\" >>"%LOGFILE%" 2>&1
    if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying x64 dsofile failed.) else (call :log   OK - x64 dsofile.dll copied.)
 :copydone
+   >>"%LOGFILE%" echo --- installed files (%TARGET_DIR%) ---
+   dir /s /b "%TARGET_DIR%" >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- end of installed files ---
 
 :reg
    echo.
