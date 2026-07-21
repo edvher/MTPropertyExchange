@@ -51,7 +51,7 @@ if exist "%WINDIR%\sysnative\cmd.exe" "%WINDIR%\sysnative\cmd.exe" /c ""%~f0"" &
 :bitness_ok
 
 color 8F
-set SHARE=\\pmt.primetals.net\ptdfs\at\apps\Software-DWP\Public\SAP
+set SHARE=\\pmt.primetals.net\ptdfs\at\apps\Software-DWP\Public\SAP_PaE
 
 echo.
 echo === ROLLBACK: remove 64-bit toolkit, restore old 32-bit installation ===
