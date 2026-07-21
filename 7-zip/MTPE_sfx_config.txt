@@ -1,5 +1,5 @@
 ;!@Install@!UTF-8!
 Title="MT_PropertyExchange Toolkit"
 BeginPrompt="Install the MT_PropertyExchange toolkit?"
-RunProgram="install.bat"
+ExecuteFile="install.bat"
 ;!@InstallEnd@!

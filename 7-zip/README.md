@@ -22,5 +22,8 @@ Two files are needed and are **not** checked in (third-party binaries):
    extract `7zSD.sfx` from it and place it **in this folder**.
 
 `MTPE_sfx_config.txt` is the SFX configuration (title, prompt, and the
-command that runs after extraction). 7-Zip is free software (LGPL); the SFX
-modules may be redistributed with your installer.
+command that runs after extraction). Note: the batch file is started via
+`ExecuteFile` (ShellExecute), **not** `RunProgram` — `RunProgram` uses raw
+`CreateProcess`, which only launches `.exe` files reliably and fails on
+`.bat` with "The system cannot find the file specified". 7-Zip is free
+software (LGPL); the SFX modules may be redistributed with your installer.
