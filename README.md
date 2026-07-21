@@ -30,6 +30,16 @@ This branch makes the toolkit bitness-complete:
 Result: legacy 32-bit callers (old SAP GUI, SEAL scripts) and the 64-bit SAP
 Business Client work side by side on the same machine.
 
+## Documentation
+
+- **[docs/OVERVIEW.md](docs/OVERVIEW.md)** — business perspective: what the
+  toolkit is for, who calls it (SAP frontend, command line, SEAL conversion
+  server), what the data looks like, typical use cases, product history.
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — technical reference:
+  components, the full COM API with error codes, format handling
+  (OPC vs. DSOFile), data formats, logging, the 32/64-bit registration model
+  and a per-folder repository guide.
+
 ## Repository layout
 
 | Path | Content |
