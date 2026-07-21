@@ -699,7 +699,40 @@ Public Class Globals
         End If
     End Sub
 
+    ''' <summary>
+    ''' If a file "version-override.txt" exists next to the installed DLL,
+    ''' its (trimmed) content is returned by Version()/GetVersion() instead
+    ''' of the built-in value. Allows adjusting the reported version without
+    ''' a rebuild, e.g. to satisfy SAP-side version comparisons.
+    ''' </summary>
+    Private Function VersionOverride() As String
+        Try
+            Dim dir As String = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)
+            Dim f As String = Path.Combine(dir, "version-override.txt")
+            If File.Exists(f) Then
+                Dim s As String = File.ReadAllText(f).Trim()
+                If s.Length > 0 Then Return s
+            End If
+        Catch ex As Exception
+        End Try
+        Return Nothing
+    End Function
+
     Public Function Version() As String
+        Dim o As String = VersionOverride()
+        If o IsNot Nothing Then Return o
+        Return "2026-07-20 12:00:00"
+    End Function
+
+    ''' <summary>
+    ''' Required by the SAP transaction ZBATIMP (FORM check_dlls): SAP probes
+    ''' for this method to distinguish the "new" PMT Office DLL from the old
+    ''' one - the probe only checks that the call succeeds (sy-subrc = 0),
+    ''' the return value is not evaluated there.
+    ''' </summary>
+    Public Function GetVersion() As String
+        Dim o As String = VersionOverride()
+        If o IsNot Nothing Then Return o
         Return "2026-07-20 12:00:00"
     End Function
 End Class
