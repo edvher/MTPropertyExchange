@@ -51,6 +51,17 @@ goto ende
 
 echo.
 echo === Step 3/3: packing self-extracting installer =====================
+
+for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HH-mm-ss"') do set TS=%%i
+if "%TS%"=="" set TS=unknown-date
+set GITREV=
+for /f %%i in ('git rev-parse --short HEAD 2^>NUL') do set GITREV=%%i
+if not defined GITREV set GITREV=norev
+
+rem Stamp the payload so install.bat can log exactly which build it is.
+> MTPropertyExchangeInstall\build-info.txt echo %GITREV% %TS%
+echo Build stamp: %GITREV% %TS%
+
 if exist MTPropertyExchangeInstall.7z del MTPropertyExchangeInstall.7z
 rem Pack the payload CONTENTS at the archive root (no wrapping folder):
 rem 7zSD.sfx runs RunProgram relative to the extraction root, so
@@ -67,11 +78,8 @@ if errorlevel 1 (
 )
 popd
 
-for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HH-mm-ss"') do set TS=%%i
-if "%TS%"=="" set TS=unknown-date
-
 mkdir Install 2>NUL
-copy /b "7-zip\7zSD.sfx" + "7-zip\MTPE_sfx_config.txt" + MTPropertyExchangeInstall.7z "Install\MTPropertyExchangeInstall-%TS%.exe" >NUL
+copy /b "7-zip\7zSD.sfx" + "7-zip\MTPE_sfx_config.txt" + MTPropertyExchangeInstall.7z "Install\MTPropertyExchangeInstall-%TS%-%GITREV%.exe" >NUL
 if errorlevel 1 (
    echo ERROR: could not assemble the SFX exe.
    set RC=1
@@ -80,7 +88,7 @@ if errorlevel 1 (
 del MTPropertyExchangeInstall.7z
 
 echo.
-echo SUCCESS: Install\MTPropertyExchangeInstall-%TS%.exe
+echo SUCCESS: Install\MTPropertyExchangeInstall-%TS%-%GITREV%.exe
 echo This single file is the complete installer - copy it to a target
 echo machine and double-click it.
 

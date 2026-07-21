@@ -77,9 +77,13 @@ goto gotAdmin
    set ERRORS=0
    color 8F
 
+   set BUILDINFO=unknown - built before build stamping was introduced
+   if exist "%INSTALL_ROOT%\build-info.txt" set /p BUILDINFO=<"%INSTALL_ROOT%\build-info.txt"
+
     > "%LOGFILE%" echo ================================================================
    >>"%LOGFILE%" echo  MT_PropertyExchange installer log
    >>"%LOGFILE%" echo  Date ......: %DATE% %TIME%
+   >>"%LOGFILE%" echo  Build .....: %BUILDINFO%
    >>"%LOGFILE%" echo  User ......: %USERNAME%   Computer: %COMPUTERNAME%
    >>"%LOGFILE%" echo  Source ....: %INSTALL_ROOT%
    >>"%LOGFILE%" echo  Argument ..: %1

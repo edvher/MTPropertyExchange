@@ -21,6 +21,7 @@ MTPropertyExchangeInstall/x64/
 # Single-file installer build (make-installer.bat)
 Install/
 MTPropertyExchangeInstall.7z
+MTPropertyExchangeInstall/build-info.txt
 7-zip/*.exe
 7-zip/*.dll
 7-zip/*.sfx
