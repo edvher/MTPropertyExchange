@@ -134,7 +134,7 @@ REM ==========================================================================
    call :log Run MTPropertyExchangeInstall\stage.bat after building, then retry.
    goto summary
 :payloadok
-   if defined ProgramFiles(x86) if exist "%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" if /I not "%TARGET_DIR%"=="%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" call :log NOTE - an old installation exists in "Program Files (x86)\Siemens\MT_PropertyExchange". Its registrations are overwritten by this installer; the folder itself can be deleted manually.
+   if defined ProgramFiles(x86) if exist "%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" if /I not "%TARGET_DIR%"=="%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" call :log NOTE - an old installation exists in "Program Files (x86)\Siemens\MT_PropertyExchange". It is removed automatically after a successful installation.
    call :dounreg
 
 :copyfiles
@@ -227,6 +227,7 @@ REM ==========================================================================
    type "%TEMP%\mtpe_testcom.out"
    type "%TEMP%\mtpe_testcom.out" >> "%LOGFILE%"
    del "%TEMP%\mtpe_testcom.out" 2>NUL
+   if %ERRORS%==0 call :cleanup_legacy
    goto summary
 
 REM ==========================================================================
@@ -268,6 +269,36 @@ REM ==========================================================================
    if exist "%TARGET_DIR%\dsofile.dll" "%REGSVR_NATIVE%" /s /u "%TARGET_DIR%\dsofile.dll" 2>NUL
    if "%IS64%"=="YES" if exist "%TARGET_DIR%\dsofile.dll" "%REGSVR_WOW%" /s /u "%TARGET_DIR%\dsofile.dll" 2>NUL
    call :log Unregister pass finished.
+   goto :EOF
+
+REM ==========================================================================
+REM  Subroutine: after a fully successful installation, remove leftovers of
+REM  previous installations: the obsolete folder in the other Program Files
+REM  location (all registry entries already point to the new folder) and the
+REM  orphaned DllSurrogate/AppID keys of the abandoned x64 registry hack.
+REM  Deliberately NOT removed: dsofile.dll copies in Windows\System32 or
+REM  SysWOW64 from very old installers - DSOFile was a shared Microsoft
+REM  component and other software may still reference those files.
+REM ==========================================================================
+:cleanup_legacy
+   echo.
+   call :log Cleaning up leftovers of previous installations ...
+   set LEGACY_DIR=
+   if defined ProgramFiles(x86) set LEGACY_DIR=%ProgramFiles(x86)%\Siemens\MT_PropertyExchange
+   if not defined LEGACY_DIR goto cleanup_reg
+   if /I "%LEGACY_DIR%"=="%TARGET_DIR%" goto cleanup_reg
+   if not exist "%LEGACY_DIR%" goto cleanup_reg
+   call :log   Removing obsolete folder "%LEGACY_DIR%" ...
+   rmdir /s /q "%LEGACY_DIR%" 2>NUL
+   if exist "%LEGACY_DIR%" (call :log   WARNING - could not remove it completely, files may be locked. Delete it manually.) else (call :log   OK - obsolete folder removed.)
+:cleanup_reg
+   rem Orphaned keys of the old DllSurrogate workaround, harmless if absent.
+   reg delete "HKCR\Wow6432Node\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /v AppID /f >NUL 2>NUL
+   reg delete "HKCR\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /v AppID /f >NUL 2>NUL
+   reg delete "HKCR\Wow6432Node\AppID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+   reg delete "HKLM\Software\Classes\AppID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+   call :log   OK - obsolete DllSurrogate registry entries removed - if any were present.
+   call :log Cleanup finished.
    goto :EOF
 
 REM ==========================================================================
