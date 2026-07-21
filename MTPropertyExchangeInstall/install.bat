@@ -161,6 +161,9 @@ REM ==========================================================================
    >>"%LOGFILE%" echo --- xcopy bin ---
    xcopy /Y /F "%INSTALL_ROOT%\bin\*.*" "%TARGET_DIR%\" >>"%LOGFILE%" 2>&1
    if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying program files failed - a file is probably in use. Close SAP, Word/Excel and other programs using the toolkit, then run the installer again. The log lists the locking processes.) else (call :log   OK - program files copied.)
+   rem Keep the emergency tools available on the installed machine.
+   copy /Y "%INSTALL_ROOT%\cleanup.bat" "%TARGET_DIR%\" >NUL 2>NUL
+   copy /Y "%INSTALL_ROOT%\rollback.bat" "%TARGET_DIR%\" >NUL 2>NUL
    >>"%LOGFILE%" echo --- xcopy x86 ---
    xcopy /Y /F /I "%INSTALL_ROOT%\x86\*.*" "%TARGET_DIR%\x86\" >>"%LOGFILE%" 2>&1
    if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying x86 dsofile failed.) else (call :log   OK - x86 dsofile.dll copied.)

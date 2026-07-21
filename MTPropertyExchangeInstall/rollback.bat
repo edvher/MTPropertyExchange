@@ -15,6 +15,21 @@ cls
 ::  Close ALL SAP and Office windows before running this script.
 :: ==========================================================================
 
+:: --------------------------------------------------------------------------
+:: Stage to %TEMP% first: this script may live inside the very folder it is
+:: about to delete (e.g. the installation folder). Running the copy from
+:: %TEMP% makes the removal safe.
+:: --------------------------------------------------------------------------
+if /I "%~dp0"=="%TEMP%\MTPE_Rollback\" goto staged
+rmdir /s /q "%TEMP%\MTPE_Rollback" 2>NUL
+mkdir "%TEMP%\MTPE_Rollback" 2>NUL
+copy /Y "%~dp0rollback.bat" "%TEMP%\MTPE_Rollback\" >NUL
+copy /Y "%~dp0cleanup.bat" "%TEMP%\MTPE_Rollback\" >NUL
+if exist "%~dp0old-installer" xcopy /E /I /Q /Y "%~dp0old-installer" "%TEMP%\MTPE_Rollback\old-installer\" >NUL
+start "" "%TEMP%\MTPE_Rollback\rollback.bat"
+exit /b
+:staged
+
 :: BatchGotAdmin
 >nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
 if "%errorlevel%"=="2" goto gotAdmin
