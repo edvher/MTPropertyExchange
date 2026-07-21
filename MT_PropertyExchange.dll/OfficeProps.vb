@@ -6,10 +6,10 @@ Imports System.Xml
 Imports System.Xml.Serialization
 Imports System.Runtime.Serialization.Formatters.Binary
 
-<Serializable(), XmlType("Property"), ComVisible(False)> _
+<Serializable(), XmlType("PROPERTY"), ComVisible(False)> _
 Public Class DocumentProperty
     <XmlAttribute("Name")> Public Name As String
-    <XmlAttribute("Value")> Public Value As String
+    <XmlText()> Public Value As String
     Private Shared ReadOnly log As log4net.ILog = log4net.LogManager.GetLogger( _
         System.Reflection.MethodBase.GetCurrentMethod().DeclaringType)
 
@@ -79,7 +79,7 @@ Public Class DocumentProperty
 #End Region
 End Class
 
-<Serializable(), XmlType("Properties"), ComVisible(False)> _
+<Serializable(), XmlType("PROPERTIES"), ComVisible(False)> _
 Public Class DocumentProperties
     Inherits CollectionBase
     Private Shared ReadOnly log As log4net.ILog = log4net.LogManager.GetLogger( _
@@ -353,6 +353,8 @@ Public Class DocumentProperties
         Dim xml As String
         Try
             xml = File.ReadAllText(fileName).Trim
+            xml = Replace(xml, "<DOCUMENT>", "")
+            xml = Replace(xml, "</DOCUMENT>", "")
         Catch
             Return Nothing
         End Try

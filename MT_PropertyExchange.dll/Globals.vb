@@ -701,9 +701,9 @@ Public Class Globals
 
     ''' <summary>
     ''' If a file "version-override.txt" exists next to the installed DLL,
-    ''' its (trimmed) content is returned by Version()/GetVersion() instead
-    ''' of the built-in value. Allows adjusting the reported version without
-    ''' a rebuild, e.g. to satisfy SAP-side version comparisons.
+    ''' its (trimmed) content is returned by Version() instead of the
+    ''' built-in value. Allows adjusting the reported version without a
+    ''' rebuild. GetVersion() is NOT affected - it must always return "V2".
     ''' </summary>
     Private Function VersionOverride() As String
         Try
@@ -725,14 +725,15 @@ Public Class Globals
     End Function
 
     ''' <summary>
-    ''' Required by the SAP transaction ZBATIMP (FORM check_dlls): SAP probes
-    ''' for this method to distinguish the "new" PMT Office DLL from the old
-    ''' one - the probe only checks that the call succeeds (sy-subrc = 0),
-    ''' the return value is not evaluated there.
+    ''' Marks this DLL as the "new" PMT Office DLL. The SAP transaction
+    ''' ZBATIMP (FORM check_dlls) probes for this method; the official 2017
+    ''' build (OfficePropertyExchange_35, 2017-05-08) returns exactly "V2",
+    ''' matching the 2-character field on the ABAP side - keep it identical.
     ''' </summary>
     Public Function GetVersion() As String
-        Dim o As String = VersionOverride()
-        If o IsNot Nothing Then Return o
-        Return "2026-07-20 12:00:00"
+
+        System.Console.Error.WriteLine("V2")
+        Return "V2"
+
     End Function
 End Class

@@ -1,9 +1,11 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Properties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <Property Name="creator" Value="author" />
-  <Property Name="category" Value="category" />
-  <Property Name="description" Value="comments" />
-  <Property Name="keywords" Value="keywords" />
-  <Property Name="subject" Value="subject" />
-  <Property Name="title" Value="title" />
-</Properties>
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<DOCUMENT>
+ <PROPERTIES>
+ <PROPERTY Name="creator">author</PROPERTY>
+ <PROPERTY Name="category">category</PROPERTY>
+ <PROPERTY Name="description">comments</PROPERTY>
+ <PROPERTY Name="keywords">keywords</PROPERTY>
+ <PROPERTY Name="subject">subject</PROPERTY>
+ <PROPERTY Name="title">title</PROPERTY>
+ </PROPERTIES>
+</DOCUMENT>

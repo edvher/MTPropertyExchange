@@ -85,9 +85,15 @@ Siemens VAI Metals Technologies → Siemens Metals Technologies ("Siemens MT")
 → Primetals Technologies. The code carries all three generations
 (`vaiCompany=Siemens VAI...` test data, `Siemens MT` assembly info from 2012,
 `\\cadlnz.primetals.com` in the old build scripts, add-in search paths for
-both `Siemens\MT\Office` and `Primetals\Office`). The last functional change
-before this repository was archived dates to ~2013
-(`Globals.Version()` returned `2013-02-21`).
+both `Siemens\MT\Office` and `Primetals\Office`).
+
+This repository originally held a ~2013 snapshot. The last known source
+level (`OfficePropertyExchange_35`, 2017-05-08 — the basis of the deployed
+"PMT Office DLL") was recovered later and its functional changes were merged
+into this repository: the `GetVersion()` marker method probed by SAP
+transaction ZBATIMP ("V2"), the upper-case `PROPERTIES`/`PROPERTY` XML
+payload format with values as element text and optional `<DOCUMENT>`
+wrapper, and the `-PROPERTY=` command line spelling.
 
 The core file-property engine for legacy formats is Microsoft's own sample
 component **DSOFile** ("DSO OLE Document Properties Reader 2.1", included in

@@ -45,7 +45,8 @@ flowchart TD
 | `prAllProp` (property) | Path of the file created by the last `GetAllCusProperties` | string |
 | `RunMacro(file, macro [, template], visible)` | Run a Word/Excel macro (Excel: loads a PLM add-in first) | error code |
 | `InitializeLogging()` / `SetLogfile` / `SetLogLevel` / `ClearLogfile` | Logging control | – |
-| `Version()` | Build identification string | string |
+| `Version()` | Build identification string (overridable via `version-override.txt` next to the DLL) | string |
+| `GetVersion()` | Marker of the "new" PMT Office DLL — SAP transaction ZBATIMP probes for this method (`FORM check_dlls`); must return exactly this value | literal `"V2"` |
 
 ### Error codes (`Globals.Errors`)
 
@@ -98,14 +99,19 @@ Also set as the **process exit code** of `MT_PropertyExchange.exe`.
 ## Data formats
 
 **XML import/export** (`ExportProperties` / `ImportProperties`, also the
-`test/fill_*.xml`, `empty_*.xml`, `delete_all.xml` samples):
+`test/fill_*.xml`, `empty_*.xml`, `delete_all.xml` samples and the real SAP
+payload `test/PropertyUpdateFile.xml`). Format as delivered by SAP since the
+2017 source level — upper-case tags, value as element text, optional
+`<DOCUMENT>` wrapper (stripped on import):
 
 ```xml
-<?xml version="1.0" encoding="utf-8"?>
-<Properties xmlns:xsi="..." xmlns:xsd="...">
-  <Property Name="title" Value="..." />
-  <Property Name="DocumentNo" Value="..." />
-</Properties>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<DOCUMENT>
+ <PROPERTIES>
+ <PROPERTY Name="title">...</PROPERTY>
+ <PROPERTY Name="DocumentNo">T.TEST....</PROPERTY>
+ </PROPERTIES>
+</DOCUMENT>
 ```
 
 **Text import** (`ImportPropertiesFromText`, the format SAP/SEAL deliver):
