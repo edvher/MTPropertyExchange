@@ -52,12 +52,20 @@ goto ende
 echo.
 echo === Step 3/3: packing self-extracting installer =====================
 if exist MTPropertyExchangeInstall.7z del MTPropertyExchangeInstall.7z
-"%SEVENZIP%" a -mx=9 MTPropertyExchangeInstall.7z MTPropertyExchangeInstall\
+rem Pack the payload CONTENTS at the archive root (no wrapping folder):
+rem 7zSD.sfx runs RunProgram relative to the extraction root, so
+rem install.bat must sit directly at the top of the archive.
+set SEVENZIP_ABS=%SEVENZIP%
+if exist "%~dp0%SEVENZIP%" set SEVENZIP_ABS=%~dp0%SEVENZIP%
+pushd MTPropertyExchangeInstall
+"%SEVENZIP_ABS%" a -mx=9 "%~dp0MTPropertyExchangeInstall.7z" *
 if errorlevel 1 (
+   popd
    echo ERROR: packing the payload failed.
    set RC=1
    goto ende
 )
+popd
 
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HH-mm-ss"') do set TS=%%i
 if "%TS%"=="" set TS=unknown-date
