@@ -135,6 +135,13 @@ REM ==========================================================================
    goto summary
 :payloadok
    if defined ProgramFiles(x86) if exist "%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" if /I not "%TARGET_DIR%"=="%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" call :log NOTE - an old installation exists in "Program Files (x86)\Siemens\MT_PropertyExchange". It is removed automatically after a successful installation.
+   rem Diagnostic: which running processes have toolkit modules loaded?
+   rem (Those processes would lock files and make copy/regasm steps fail.)
+   >>"%LOGFILE%" echo --- processes holding toolkit modules ---
+   tasklist /M MT_PropertyExchange* /FO TABLE >>"%LOGFILE%" 2>&1
+   tasklist /M Interop.Dsofile* /FO TABLE >>"%LOGFILE%" 2>&1
+   tasklist /M dsofile* /FO TABLE >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- end of process diagnostic ---
    call :dounreg
 
 :copyfiles
@@ -143,7 +150,7 @@ REM ==========================================================================
    mkdir "%TARGET_DIR%" 2>NUL
    >>"%LOGFILE%" echo --- xcopy bin ---
    xcopy /Y /F "%INSTALL_ROOT%\bin\*.*" "%TARGET_DIR%\" >>"%LOGFILE%" 2>&1
-   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying program files failed.) else (call :log   OK - program files copied.)
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying program files failed - a file is probably in use. Close SAP, Word/Excel and other programs using the toolkit, then run the installer again. The log lists the locking processes.) else (call :log   OK - program files copied.)
    >>"%LOGFILE%" echo --- xcopy x86 ---
    xcopy /Y /F /I "%INSTALL_ROOT%\x86\*.*" "%TARGET_DIR%\x86\" >>"%LOGFILE%" 2>&1
    if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying x86 dsofile failed.) else (call :log   OK - x86 dsofile.dll copied.)
@@ -188,6 +195,10 @@ REM ==========================================================================
    call :log   ERROR - MT_PropertyExchangeDLL.dll not found in target folder.
    goto regdone
 :regnetdo
+   rem Remove the previously exported type library first; if it is locked by
+   rem a running process, regasm would fail with a misleading access-denied.
+   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" del /q "%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" 2>NUL
+   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" call :log   WARNING - the existing type library file is locked by a running process. Close SAP and Office programs and run the installer again if the next steps fail.
    >>"%LOGFILE%" echo --- regasm 64-bit ---
    "%REGASM64%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo >>"%LOGFILE%" 2>&1
    if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - regasm 64-bit failed.) else (call :log   OK - MT_PropertyExchangeDLL registered in 64-bit view.)
