@@ -301,9 +301,16 @@ REM ==========================================================================
    rem package shipped gacutil.exe). A GAC copy always wins over the
    rem registered codebase and hijacks the COM load with a stale build -
    rem symptom: CreateObject fails with 0x80131534 in one bitness only.
+   >>"%LOGFILE%" echo --- GAC inventory BEFORE purge (empty = machine was clean) ---
+   dir /s /b "%WINDIR%\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1
+   dir /s /b "%WINDIR%\Microsoft.NET\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1
    >>"%LOGFILE%" echo --- GAC purge ---
    if exist "%INSTALL_ROOT%\lib\gacutil.exe" "%INSTALL_ROOT%\lib\gacutil.exe" /nologo /u MT_PropertyExchangeDLL >>"%LOGFILE%" 2>&1
    powershell -NoProfile -Command "$p=New-Object System.EnterpriseServices.Internal.Publish; Get-ChildItem 'C:\Windows\Microsoft.NET\assembly','C:\Windows\assembly' -Recurse -Filter 'MT_PropertyExchangeDLL.dll' -ErrorAction SilentlyContinue | ForEach-Object { $p.GacRemove($_.FullName) }" >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- GAC inventory AFTER purge (must be empty) ---
+   dir /s /b "%WINDIR%\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1
+   dir /s /b "%WINDIR%\Microsoft.NET\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- end of GAC section ---
    call :log GAC checked - stale GAC copies of MT_PropertyExchangeDLL removed if present.
    call :log Unregister pass finished.
    goto :EOF
