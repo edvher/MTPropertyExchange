@@ -296,6 +296,15 @@ REM ==========================================================================
    rem legacy location: dsofile.dll flat in the target dir (old installer)
    if exist "%TARGET_DIR%\dsofile.dll" "%REGSVR_NATIVE%" /s /u "%TARGET_DIR%\dsofile.dll" 2>NUL
    if "%IS64%"=="YES" if exist "%TARGET_DIR%\dsofile.dll" "%REGSVR_WOW%" /s /u "%TARGET_DIR%\dsofile.dll" 2>NUL
+
+   rem Old installations sometimes placed the DLL into the GAC (the legacy
+   rem package shipped gacutil.exe). A GAC copy always wins over the
+   rem registered codebase and hijacks the COM load with a stale build -
+   rem symptom: CreateObject fails with 0x80131534 in one bitness only.
+   >>"%LOGFILE%" echo --- GAC purge ---
+   if exist "%INSTALL_ROOT%\lib\gacutil.exe" "%INSTALL_ROOT%\lib\gacutil.exe" /nologo /u MT_PropertyExchangeDLL >>"%LOGFILE%" 2>&1
+   powershell -NoProfile -Command "$p=New-Object System.EnterpriseServices.Internal.Publish; Get-ChildItem 'C:\Windows\Microsoft.NET\assembly','C:\Windows\assembly' -Recurse -Filter 'MT_PropertyExchangeDLL.dll' -ErrorAction SilentlyContinue | ForEach-Object { $p.GacRemove($_.FullName) }" >>"%LOGFILE%" 2>&1
+   call :log GAC checked - stale GAC copies of MT_PropertyExchangeDLL removed if present.
    call :log Unregister pass finished.
    goto :EOF
 
