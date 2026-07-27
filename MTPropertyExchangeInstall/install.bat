@@ -247,12 +247,36 @@ REM ==========================================================================
    mkdir "%TARGET_DIR%\Test" 2>NUL
    xcopy /Q /S /Y "%INSTALL_ROOT%\test\*.*" "%TARGET_DIR%\Test\" 1>nul 2>nul
    call "%TARGET_DIR%\Test\test-com.bat" > "%TEMP%\mtpe_testcom.out" 2>&1
-   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - COM activation test FAILED.) else (call :log   OK - COM activation test passed.)
+   set TESTRC=%ERRORLEVEL%
    type "%TEMP%\mtpe_testcom.out"
    type "%TEMP%\mtpe_testcom.out" >> "%LOGFILE%"
    del "%TEMP%\mtpe_testcom.out" 2>NUL
+   if "%TESTRC%"=="0" goto testok
+   set /a ERRORS+=1
+   call :log   ERROR - COM activation test FAILED. Running deep diagnostic ...
+   call :deepdiag
+   goto testdone
+:testok
+   call :log   OK - COM activation test passed.
+:testdone
    if %ERRORS%==0 call :cleanup_legacy
    goto summary
+
+REM ==========================================================================
+REM  Subroutine: when COM activation fails, load the DLL directly in a
+REM  64-bit and a 32-bit .NET process and write the FULL inner exception
+REM  chain to the log - the outer COM error (e.g. 0x80131534) hides it.
+REM ==========================================================================
+:deepdiag
+   >>"%LOGFILE%" echo --- deep diagnostic: direct .NET load, 64-bit ---
+   "%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "try { $a=[Reflection.Assembly]::LoadFrom('%TARGET_DIR%\MT_PropertyExchangeDLL.dll'); $t=$a.GetType('MT_PropertyExchange.Globals',$true); $o=[Activator]::CreateInstance($t); Write-Output ('OK - GetVersion returned ' + $t.GetMethod('GetVersion').Invoke($o,@())) } catch { $e=$_.Exception; while($e){ Write-Output ($e.GetType().FullName + ' :: ' + $e.Message); $e=$e.InnerException } }" >>"%LOGFILE%" 2>&1
+   if not exist "%WINDIR%\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" goto deepdiag_done
+   >>"%LOGFILE%" echo --- deep diagnostic: direct .NET load, 32-bit ---
+   "%WINDIR%\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "try { $a=[Reflection.Assembly]::LoadFrom('%TARGET_DIR%\MT_PropertyExchangeDLL.dll'); $t=$a.GetType('MT_PropertyExchange.Globals',$true); $o=[Activator]::CreateInstance($t); Write-Output ('OK - GetVersion returned ' + $t.GetMethod('GetVersion').Invoke($o,@())) } catch { $e=$_.Exception; while($e){ Write-Output ($e.GetType().FullName + ' :: ' + $e.Message); $e=$e.InnerException } }" >>"%LOGFILE%" 2>&1
+:deepdiag_done
+   >>"%LOGFILE%" echo --- end of deep diagnostic ---
+   call :log   Deep diagnostic written to the log - send the log file for analysis.
+   goto :EOF
 
 REM ==========================================================================
 :unreg
@@ -306,7 +330,7 @@ REM ==========================================================================
    dir /s /b "%WINDIR%\Microsoft.NET\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1
    >>"%LOGFILE%" echo --- GAC purge ---
    if exist "%INSTALL_ROOT%\lib\gacutil.exe" "%INSTALL_ROOT%\lib\gacutil.exe" /nologo /u MT_PropertyExchangeDLL >>"%LOGFILE%" 2>&1
-   powershell -NoProfile -Command "$p=New-Object System.EnterpriseServices.Internal.Publish; Get-ChildItem 'C:\Windows\Microsoft.NET\assembly','C:\Windows\assembly' -Recurse -Filter 'MT_PropertyExchangeDLL.dll' -ErrorAction SilentlyContinue | ForEach-Object { $p.GacRemove($_.FullName) }" >>"%LOGFILE%" 2>&1
+   powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.EnterpriseServices; $p=New-Object System.EnterpriseServices.Internal.Publish; Get-ChildItem 'C:\Windows\Microsoft.NET\assembly','C:\Windows\assembly' -Recurse -Filter 'MT_PropertyExchangeDLL.dll' -ErrorAction SilentlyContinue | ForEach-Object { $p.GacRemove($_.FullName) }" >>"%LOGFILE%" 2>&1
    >>"%LOGFILE%" echo --- GAC inventory AFTER purge (must be empty) ---
    dir /s /b "%WINDIR%\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1
    dir /s /b "%WINDIR%\Microsoft.NET\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1

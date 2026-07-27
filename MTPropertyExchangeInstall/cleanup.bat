@@ -60,7 +60,7 @@ if exist "%DIR64%\dsofile.dll" "%WINDIR%\SysWOW64\regsvr32.exe" /s /u "%DIR64%\d
 
 rem Remove stale GAC copies - a GAC copy would win over any registration.
 if exist "%~dp0lib\gacutil.exe" "%~dp0lib\gacutil.exe" /nologo /u MT_PropertyExchangeDLL >NUL 2>NUL
-powershell -NoProfile -Command "$p=New-Object System.EnterpriseServices.Internal.Publish; Get-ChildItem 'C:\Windows\Microsoft.NET\assembly','C:\Windows\assembly' -Recurse -Filter 'MT_PropertyExchangeDLL.dll' -ErrorAction SilentlyContinue | ForEach-Object { $p.GacRemove($_.FullName) }" >NUL 2>NUL
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.EnterpriseServices; $p=New-Object System.EnterpriseServices.Internal.Publish; Get-ChildItem 'C:\Windows\Microsoft.NET\assembly','C:\Windows\assembly' -Recurse -Filter 'MT_PropertyExchangeDLL.dll' -ErrorAction SilentlyContinue | ForEach-Object { $p.GacRemove($_.FullName) }" >NUL 2>NUL
 
 echo [2/4] Removing the x86 folder or compatibility junction ...
 if not defined DIR86 goto dir86done
