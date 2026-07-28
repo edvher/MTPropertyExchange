@@ -85,6 +85,16 @@ if exist "%DIR64%" set FAIL=1
 if exist "%DIR64%" echo    WARNING: could not remove "%DIR64%" completely - files locked?
 :dir64done
 
+rem Per-user COM registrations of our GUID/ProgID, in all loaded user hives
+for /f "delims=" %%u in ('reg query HKU 2^>NUL') do (
+   reg delete "%%u\Software\Classes\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+   reg delete "%%u\Software\Classes\Wow6432Node\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+   reg delete "%%u\Software\Classes\MT_PropertyExchange.Globals" /f >NUL 2>NUL
+   reg delete "%%u\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+   reg delete "%%u\Wow6432Node\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+   reg delete "%%u\MT_PropertyExchange.Globals" /f >NUL 2>NUL
+)
+
 echo [4/4] Removing leftover registry entries (both views) ...
 rem MT_PropertyExchange.Globals
 reg delete "HKCR\MT_PropertyExchange.Globals" /f >NUL 2>NUL

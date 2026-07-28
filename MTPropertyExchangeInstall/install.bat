@@ -274,6 +274,15 @@ REM ==========================================================================
    >>"%LOGFILE%" echo --- deep diagnostic: direct .NET load, 32-bit ---
    "%WINDIR%\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "try { $a=[Reflection.Assembly]::LoadFrom('%TARGET_DIR%\MT_PropertyExchangeDLL.dll'); $t=$a.GetType('MT_PropertyExchange.Globals',$true); $o=[Activator]::CreateInstance($t); Write-Output ('OK - GetVersion returned ' + $t.GetMethod('GetVersion').Invoke($o,@())) } catch { $e=$_.Exception; while($e){ Write-Output ($e.GetType().FullName + ' :: ' + $e.Message); $e=$e.InnerException } }" >>"%LOGFILE%" 2>&1
 :deepdiag_done
+   >>"%LOGFILE%" echo --- registry state: CLSID in 64-bit view ---
+   reg query "HKLM\SOFTWARE\Classes\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /s /reg:64 >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- registry state: CLSID in 32-bit view ---
+   reg query "HKLM\SOFTWARE\Classes\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /s /reg:32 >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- registry state: per-user CLSID entries (all hives) ---
+   for /f "delims=" %%u in ('reg query HKU 2^>NUL') do (
+      reg query "%%u\Software\Classes\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /s >>"%LOGFILE%" 2>NUL
+      reg query "%%u\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /s >>"%LOGFILE%" 2>NUL
+   )
    >>"%LOGFILE%" echo --- end of deep diagnostic ---
    call :log   Deep diagnostic written to the log - send the log file for analysis.
    goto :EOF
@@ -336,6 +345,31 @@ REM ==========================================================================
    dir /s /b "%WINDIR%\Microsoft.NET\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1
    >>"%LOGFILE%" echo --- end of GAC section ---
    call :log GAC checked - stale GAC copies of MT_PropertyExchangeDLL removed if present.
+
+   rem Per-USER COM registrations (created by running regasm without admin
+   rem rights) shadow the machine-wide registration for that user, usually
+   rem in one bitness view only. Remove them for ALL loaded user hives -
+   rem only our own GUID/ProgID, nothing else.
+   >>"%LOGFILE%" echo --- per-user registration purge ---
+   for /f "delims=" %%u in ('reg query HKU 2^>NUL') do (
+      reg query "%%u\Software\Classes\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" >NUL 2>NUL && >>"%LOGFILE%" echo FOUND stale per-user CLSID in %%u - removing
+      reg delete "%%u\Software\Classes\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+      reg delete "%%u\Software\Classes\Wow6432Node\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+      reg delete "%%u\Software\Classes\MT_PropertyExchange.Globals" /f >NUL 2>NUL
+      reg query "%%u\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" >NUL 2>NUL && >>"%LOGFILE%" echo FOUND stale per-user CLSID in %%u classes-hive - removing
+      reg delete "%%u\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+      reg delete "%%u\Wow6432Node\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+      reg delete "%%u\MT_PropertyExchange.Globals" /f >NUL 2>NUL
+   )
+   >>"%LOGFILE%" echo --- end of per-user purge ---
+   call :log Per-user registrations checked and removed if present.
+
+   rem Orphaned DllSurrogate keys of the old x64 workaround - remove them in
+   rem every run, not only after a fully successful installation.
+   reg delete "HKCR\Wow6432Node\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /v AppID /f >NUL 2>NUL
+   reg delete "HKCR\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /v AppID /f >NUL 2>NUL
+   reg delete "HKCR\Wow6432Node\AppID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+   reg delete "HKLM\Software\Classes\AppID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
    call :log Unregister pass finished.
    goto :EOF
 
