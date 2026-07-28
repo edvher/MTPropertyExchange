@@ -292,10 +292,18 @@ Public Class DocumentProperties
         End Try
         rs = enc.GetString(memStream.ToArray())
 
+        ' Strip a leading byte order mark. Up to .NET 3.5 the callers'
+        ' TrimStart() removed U+FEFF because it counted as whitespace; since
+        ' .NET 4 it does not, and a BOM at the start makes the XML unparsable
+        ' for FromXml.
+        If rs.Length > 0 AndAlso rs(0) = ChrW(&HFEFF) Then rs = rs.Substring(1)
+
         Return rs
     End Function
     Public Shared Function FromXml(ByVal xml As String) As DocumentProperties
         Dim loaded As DocumentProperties
+        ' Tolerate a leading BOM and whitespace (see ToXml).
+        If xml IsNot Nothing Then xml = xml.TrimStart(ChrW(&HFEFF), " "c, ChrW(9), ChrW(10), ChrW(13))
         Dim mySerializer As New XmlSerializer(GetType(DocumentProperties))
         Dim myReader As New StringReader(xml)
 

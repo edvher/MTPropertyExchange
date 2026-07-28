@@ -475,6 +475,10 @@ Public Class Globals
         If rc = 0 Then rs = util.ReadAllProperties(fileName)
 
         Dim p As DocumentProperties = DocumentProperties.FromXml(rs)
+        If p Is Nothing Then
+            System.Environment.ExitCode = Errors.InvalidData
+            Return String.Empty
+        End If
         rs = Path.GetTempFileName()
         File.Delete(rs)
         rs = System.IO.Path.ChangeExtension(rs, ".xml")
@@ -499,6 +503,10 @@ Public Class Globals
 
         If rc = 0 Then rs = util.ReadAllProperties(fileName)
         Dim p As DocumentProperties = DocumentProperties.FromXml(rs)
+        If p Is Nothing Then
+            System.Environment.ExitCode = Errors.InvalidData
+            Return String.Empty
+        End If
         rs = String.Empty
 
         For Each prop As DocumentProperty In p
@@ -607,6 +615,11 @@ Public Class Globals
 
         log.Debug("Creating DocumentProperties from XML")
         Dim p As DocumentProperties = DocumentProperties.FromXml(rs)
+        If p Is Nothing Then
+            log.Error("Could not parse the properties XML - continuing with an empty set.")
+            System.Environment.ExitCode = Errors.InvalidData
+            p = New DocumentProperties()
+        End If
 
         _prAllProp = Path.GetTempFileName()
         log.DebugFormat("Temporary File: {0}", _prAllProp)
