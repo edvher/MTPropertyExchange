@@ -22,7 +22,31 @@ Imports log4net.Core
 '<Guid("41A13AC0-103B-40ec-9A52-AEE2C6C846C6"), ComVisible(True), ProgId("MT_PropertyExchange.Globals"), ClassInterface(ClassInterfaceType.AutoDispatch)> _
 <Microsoft.VisualBasic.ComClass("41A13AC0-103B-40ec-9A52-AEE2C6C846C6"), ComVisible(True), ProgId("MT_PropertyExchange.Globals")> _
 Public Class Globals
-    Public Shared ReadOnly log As log4net.ILog = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType)
+    Public Shared ReadOnly log As log4net.ILog = CreateLoggerSafe()
+
+    ''' <summary>
+    ''' Creating the logger triggers log4net's attribute driven configuration,
+    ''' which probes the HOST process base directory (System32 when hosted by
+    ''' 64-bit cscript). On hardened machines this can throw and would kill
+    ''' the COM activation with a TypeInitializationException (0x80131534).
+    ''' Logging must never break the toolkit: fall back to an unconfigured
+    ''' repository whose loggers are safe no-ops.
+    ''' </summary>
+    Private Shared Function CreateLoggerSafe() As log4net.ILog
+        Try
+            Return log4net.LogManager.GetLogger(GetType(Globals))
+        Catch ex As Exception
+        End Try
+        Try
+            Try
+                log4net.LogManager.CreateRepository("MTPE_Fallback")
+            Catch ex As Exception
+            End Try
+            Return log4net.LogManager.GetLogger("MTPE_Fallback", "MT_PropertyExchange.Globals")
+        Catch ex As Exception
+        End Try
+        Return Nothing
+    End Function
 
     ''' <summary>
     ''' FilePorpIO Error codes
