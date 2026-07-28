@@ -10,8 +10,10 @@ IF "%FI%"=="" set PAUSE=YES
 IF "%FI%"=="" set FI="%root%\SAP.xls"
 
 
-if exist "%ProgramFiles%\Siemens\MT_PropertyExchange" set TARGET_DIR=%ProgramFiles%\Siemens\MT_PropertyExchange
+rem Prefer the native Program Files location (current installer); the
+rem (x86) location is only a fallback for old installations.
 if exist "%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" set TARGET_DIR=%ProgramFiles(x86)%\Siemens\MT_PropertyExchange
+if exist "%ProgramFiles%\Siemens\MT_PropertyExchange" set TARGET_DIR=%ProgramFiles%\Siemens\MT_PropertyExchange
 goto common
 
 

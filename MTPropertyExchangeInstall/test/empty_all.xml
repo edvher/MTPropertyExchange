@@ -1,95 +1,97 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Properties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <Property Name="creator" Value="" />
-  <Property Name="category" Value="" />
-  <Property Name="description" Value="" />
-  <Property Name="keywords" Value="" />
-  <Property Name="subject" Value="" />
-  <Property Name="title" Value="" />
-  <Property Name="ApprovedBy" Value=""/>
-  <Property Name="ApprovedOn" Value=""/>
-  <Property Name="Area" Value=""/>
-  <Property Name="CheckedBy" Value=""/>
-  <Property Name="CheckedOn" Value=""/>
-  <Property Name="ConsortialPartner" Value=""/>
-  <Property Name="ConsortialPartnerNo" Value=""/>
-  <Property Name="ContractItemNo" Value=""/>
-  <Property Name="CountNo" Value=""/>
-  <Property Name="CreatedBy" Value=""/>
-  <Property Name="CreatedOn" Value=""/>
-  <Property Name="Customer" Value=""/>
-  <Property Name="CustomerDrawingNo" Value=""/>
-  <Property Name="customerLogoOld" Value=""/>
-  <Property Name="CustomerProjectDescription" Value=""/>
-  <Property Name="CustomerRevisionNo" Value=""/>
-  <Property Name="CustomerSheetFormat" Value="" />
-  <Property Name="DepartmentDescription" Value=""/>
-  <Property Name="DocType" Value=""/>
-  <Property Name="DocumentLanguage" Value=""/>
-  <Property Name="DocumentNo" Value=""/>
-  <Property Name="DocumentTypeText" Value=""/>
-  <Property Name="DocumentTypeTextPL" Value=""/>
-  <Property Name="EngineeringPackage" Value=""/>
-  <Property Name="EngPackText" Value=""/>
-  <Property Name="Equipment" Value=""/>
-  <Property Name="Mandator" Value=""/>
-  <Property Name="Mass" Value=""/>
-  <Property Name="MassUnit" Value=""/>
-  <Property Name="Material" Value=""/>
-  <Property Name="mtBuilt" Value=""/>
-  <Property Name="NoOfSheets" Value=""/>
-  <Property Name="PartNo" Value=""/>
-  <Property Name="PlantCode" Value=""/>
-  <Property Name="ProjectCode" Value=""/>
-  <Property Name="projectDepartment" Value=""/>
-  <Property Name="ProjectProperty1" Value=""/>
-  <Property Name="ProjectProperty2" Value=""/>
-  <Property Name="ProjectProperty3" Value=""/>
-  <Property Name="ProjectProperty4" Value=""/>
-  <Property Name="ProjectProperty5" Value=""/>
-  <Property Name="ProjectProperty6" Value=""/>
-  <Property Name="ProjectProperty7" Value=""/>
-  <Property Name="ProjectProperty8" Value=""/>
-  <Property Name="ProjectProperty9" Value=""/>
-  <Property Name="RevisedBy" Value=""/>
-  <Property Name="RevisedOn" Value=""/>
-  <Property Name="RevisionApprovedBy" Value=""/>
-  <Property Name="RevisionDescription" Value=""/>
-  <Property Name="RevisionNo" Value=""/>
-  <Property Name="SAP_DocType" Value=""/>    
-  <Property Name="Scale1" Value=""/>
-  <Property Name="Scale2" Value=""/>
-  <Property Name="SecLevText" Value=""/>
-  <Property Name="SectionNo" Value=""/>
-  <Property Name="SectionText" Value=""/>
-  <Property Name="SectionTextPL" Value=""/>
-  <Property Name="SecurityLevel" Value=""/>
-  <Property Name="SheetFormat" Value=""/>
-  <Property Name="SheetNo" Value=""/>
-  <Property Name="Status" Value=""/>
-  <Property Name="SubGroup" Value=""/>
-  <Property Name="Supplier" Value=""/>
-  <Property Name="SupplierDocNo" Value=""/>
-  <Property Name="SupplyGroup" Value=""/>
-  <Property Name="SupplyGroupText" Value=""/>
-  <Property Name="SupplyGroupTextPL" Value=""/>
-  <Property Name="Title1" Value=""/>
-  <Property Name="Title1PL" Value=""/>
-  <Property Name="Title2" Value=""/>
-  <Property Name="Title2PL" Value=""/>
-  <Property Name="Title3" Value=""/>
-  <Property Name="Title3PL" Value=""/>
-  <Property Name="Title4" Value=""/>
-  <Property Name="Title4a" Value=""/>
-  <Property Name="Title4aPL" Value=""/>
-  <Property Name="Title4b" Value=""/>
-  <Property Name="Title4bPL" Value=""/>
-  <Property Name="Title4PL" Value=""/>
-  <Property Name="Title5" Value=""/>
-  <Property Name="Title5PL" Value=""/>
-  <Property Name="vaiCompany" Value=""/>
-  <Property Name="vaiLogoOld" Value=""/>
-  <Property Name="VolumeNo" Value=""/>
-  <Property Name="VolumeText" Value=""/>
-  <Property Name="VolumeTextPL" Value=""/>
-</Properties>
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<DOCUMENT>
+ <PROPERTIES>
+ <PROPERTY Name="creator"></PROPERTY>
+ <PROPERTY Name="category"></PROPERTY>
+ <PROPERTY Name="description"></PROPERTY>
+ <PROPERTY Name="keywords"></PROPERTY>
+ <PROPERTY Name="subject"></PROPERTY>
+ <PROPERTY Name="title"></PROPERTY>
+ <PROPERTY Name="ApprovedBy"></PROPERTY>
+ <PROPERTY Name="ApprovedOn"></PROPERTY>
+ <PROPERTY Name="Area"></PROPERTY>
+ <PROPERTY Name="CheckedBy"></PROPERTY>
+ <PROPERTY Name="CheckedOn"></PROPERTY>
+ <PROPERTY Name="ConsortialPartner"></PROPERTY>
+ <PROPERTY Name="ConsortialPartnerNo"></PROPERTY>
+ <PROPERTY Name="ContractItemNo"></PROPERTY>
+ <PROPERTY Name="CountNo"></PROPERTY>
+ <PROPERTY Name="CreatedBy"></PROPERTY>
+ <PROPERTY Name="CreatedOn"></PROPERTY>
+ <PROPERTY Name="Customer"></PROPERTY>
+ <PROPERTY Name="CustomerDrawingNo"></PROPERTY>
+ <PROPERTY Name="customerLogoOld"></PROPERTY>
+ <PROPERTY Name="CustomerProjectDescription"></PROPERTY>
+ <PROPERTY Name="CustomerRevisionNo"></PROPERTY>
+ <PROPERTY Name="CustomerSheetFormat"></PROPERTY>
+ <PROPERTY Name="DepartmentDescription"></PROPERTY>
+ <PROPERTY Name="DocType"></PROPERTY>
+ <PROPERTY Name="DocumentLanguage"></PROPERTY>
+ <PROPERTY Name="DocumentNo"></PROPERTY>
+ <PROPERTY Name="DocumentTypeText"></PROPERTY>
+ <PROPERTY Name="DocumentTypeTextPL"></PROPERTY>
+ <PROPERTY Name="EngineeringPackage"></PROPERTY>
+ <PROPERTY Name="EngPackText"></PROPERTY>
+ <PROPERTY Name="Equipment"></PROPERTY>
+ <PROPERTY Name="Mandator"></PROPERTY>
+ <PROPERTY Name="Mass"></PROPERTY>
+ <PROPERTY Name="MassUnit"></PROPERTY>
+ <PROPERTY Name="Material"></PROPERTY>
+ <PROPERTY Name="mtBuilt"></PROPERTY>
+ <PROPERTY Name="NoOfSheets"></PROPERTY>
+ <PROPERTY Name="PartNo"></PROPERTY>
+ <PROPERTY Name="PlantCode"></PROPERTY>
+ <PROPERTY Name="ProjectCode"></PROPERTY>
+ <PROPERTY Name="projectDepartment"></PROPERTY>
+ <PROPERTY Name="ProjectProperty1"></PROPERTY>
+ <PROPERTY Name="ProjectProperty2"></PROPERTY>
+ <PROPERTY Name="ProjectProperty3"></PROPERTY>
+ <PROPERTY Name="ProjectProperty4"></PROPERTY>
+ <PROPERTY Name="ProjectProperty5"></PROPERTY>
+ <PROPERTY Name="ProjectProperty6"></PROPERTY>
+ <PROPERTY Name="ProjectProperty7"></PROPERTY>
+ <PROPERTY Name="ProjectProperty8"></PROPERTY>
+ <PROPERTY Name="ProjectProperty9"></PROPERTY>
+ <PROPERTY Name="RevisedBy"></PROPERTY>
+ <PROPERTY Name="RevisedOn"></PROPERTY>
+ <PROPERTY Name="RevisionApprovedBy"></PROPERTY>
+ <PROPERTY Name="RevisionDescription"></PROPERTY>
+ <PROPERTY Name="RevisionNo"></PROPERTY>
+ <PROPERTY Name="SAP_DocType"></PROPERTY>
+ <PROPERTY Name="Scale1"></PROPERTY>
+ <PROPERTY Name="Scale2"></PROPERTY>
+ <PROPERTY Name="SecLevText"></PROPERTY>
+ <PROPERTY Name="SectionNo"></PROPERTY>
+ <PROPERTY Name="SectionText"></PROPERTY>
+ <PROPERTY Name="SectionTextPL"></PROPERTY>
+ <PROPERTY Name="SecurityLevel"></PROPERTY>
+ <PROPERTY Name="SheetFormat"></PROPERTY>
+ <PROPERTY Name="SheetNo"></PROPERTY>
+ <PROPERTY Name="Status"></PROPERTY>
+ <PROPERTY Name="SubGroup"></PROPERTY>
+ <PROPERTY Name="Supplier"></PROPERTY>
+ <PROPERTY Name="SupplierDocNo"></PROPERTY>
+ <PROPERTY Name="SupplyGroup"></PROPERTY>
+ <PROPERTY Name="SupplyGroupText"></PROPERTY>
+ <PROPERTY Name="SupplyGroupTextPL"></PROPERTY>
+ <PROPERTY Name="Title1"></PROPERTY>
+ <PROPERTY Name="Title1PL"></PROPERTY>
+ <PROPERTY Name="Title2"></PROPERTY>
+ <PROPERTY Name="Title2PL"></PROPERTY>
+ <PROPERTY Name="Title3"></PROPERTY>
+ <PROPERTY Name="Title3PL"></PROPERTY>
+ <PROPERTY Name="Title4"></PROPERTY>
+ <PROPERTY Name="Title4a"></PROPERTY>
+ <PROPERTY Name="Title4aPL"></PROPERTY>
+ <PROPERTY Name="Title4b"></PROPERTY>
+ <PROPERTY Name="Title4bPL"></PROPERTY>
+ <PROPERTY Name="Title4PL"></PROPERTY>
+ <PROPERTY Name="Title5"></PROPERTY>
+ <PROPERTY Name="Title5PL"></PROPERTY>
+ <PROPERTY Name="vaiCompany"></PROPERTY>
+ <PROPERTY Name="vaiLogoOld"></PROPERTY>
+ <PROPERTY Name="VolumeNo"></PROPERTY>
+ <PROPERTY Name="VolumeText"></PROPERTY>
+ <PROPERTY Name="VolumeTextPL"></PROPERTY>
+ </PROPERTIES>
+</DOCUMENT>

@@ -1031,7 +1031,7 @@ STDAPI_(BOOL) FFindQualifiedFileName(LPCWSTR pwszFile, LPWSTR pwszPath, ULONG *p
 		LPWSTR lpwszFilePart = NULL;
 		dwRet = SearchPathW(NULL, pwszFile, NULL, MAX_PATH, pwszPath, &lpwszFilePart);
         if ((0 == dwRet || dwRet > MAX_PATH)) return FALSE;
-        if (pcPathIdx) *pcPathIdx = (((ULONG)lpwszFilePart - (ULONG)pwszPath) / 2);
+        if (pcPathIdx) *pcPathIdx = (ULONG)(((ULONG_PTR)lpwszFilePart - (ULONG_PTR)pwszPath) / 2);
 	}
 	else
 	{
@@ -1045,7 +1045,7 @@ STDAPI_(BOOL) FFindQualifiedFileName(LPCWSTR pwszFile, LPWSTR pwszPath, ULONG *p
 		dwRet = SearchPathA(NULL, szFile, NULL, MAX_PATH, szBuffer, &lpszFilePart);
         if ((0 == dwRet || dwRet > MAX_PATH)) return FALSE;
 
-        if (pcPathIdx) *pcPathIdx = (ULONG)lpszFilePart - (ULONG)&szBuffer;
+        if (pcPathIdx) *pcPathIdx = (ULONG)((ULONG_PTR)lpszFilePart - (ULONG_PTR)&szBuffer);
         if (FAILED(DsoConvertToUnicodeEx(szBuffer, lstrlen(szBuffer), pwszPath, MAX_PATH, GetACP())))
             return FALSE;
 	}

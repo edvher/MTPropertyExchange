@@ -20,10 +20,13 @@
 #define DS_DSOFILE_H
 
 ////////////////////////////////////////////////////////////////////
-// Built for Windows 98, NT4, ME, 2000, XP, and 2003 (32-bit DCOM)
+// Originally built for Windows 98, NT4, ME, 2000, XP, and 2003.
+// Baseline raised to Windows 7 so the sources compile against a
+// current Windows SDK (needed for the x64 build).
 //
 #define WIN32_LEAN_AND_MEAN
-#define WINVER 0x0400
+#define WINVER 0x0601
+#define _WIN32_WINNT 0x0601
 
 ////////////////////////////////////////////////////////////////////
 // Standard include files (turn off some warnings)

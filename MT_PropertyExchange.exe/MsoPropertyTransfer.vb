@@ -23,7 +23,10 @@ Module MsoPropertyTransfer
         fileName = args.Single("file")
         xmlFile = args.Single("xml")
         txtFile = args.Single("txt")
-        propertyName = args.Single("prop") : If propertyName Is Nothing Then propertyName = args.ForceSingle("property")
+        ' The 2017 SAP integration passes -PROPERTY= (upper case); accept both.
+        propertyName = args.Single("prop")
+        If propertyName Is Nothing Then propertyName = args.ForceSingle("PROPERTY")
+        If propertyName Is Nothing Then propertyName = args.ForceSingle("property")
         propertyValue = args.ForceSingle("val") : If propertyValue Is Nothing Then propertyValue = args.ForceSingle("value")
         macroName = args.Single("macro")
         mode = args.Single("mode")
@@ -54,23 +57,15 @@ Module MsoPropertyTransfer
             End
         End If
 
-        If args.IsTrue("h") OrElse args.IsTrue("help") OrElse args.IsTrue("?") Then
-            Console.Write(My.Resources.help.ToString())
-            End
-        End If
-
         If args.Count = 1 AndAlso (args.IsTrue("v") OrElse args.IsTrue("version")) Then
             System.Console.Out.WriteLine(util.Version)
             System.Environment.Exit(0)
         End If
 
-        If args.IsTrue("interactive") OrElse args.Count = 0 OrElse args.Count = 1 AndAlso splitCommandLine(0).ToLower.Contains(Reflection.Assembly.GetExecutingAssembly.ManifestModule.Name.ToLower) Then
-            Dim dlg = New Interactivity
-            dlg.ShowDialog()
+        If args.Count = 0 OrElse args.IsTrue("h") OrElse args.IsTrue("help") OrElse args.IsTrue("?") Then
+            Console.Write(My.Resources.help.ToString())
             End
         End If
-
-
 
         If fileName Is Nothing AndAlso args.IsTrue("clearlog") Then
             End

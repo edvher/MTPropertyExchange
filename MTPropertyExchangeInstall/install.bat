@@ -1,5 +1,43 @@
-@echo off 
+@echo off
 cls
+
+:: ==========================================================================
+::  MT_PropertyExchange toolkit - installer
+::
+::  Installs the toolkit and registers the COM components in BOTH registry
+::  views on 64-bit Windows, so that 32-bit callers (legacy SAP GUI, SEAL
+::  scripts) and 64-bit callers (SAP Business Client 64-bit) both work.
+::
+::  Every step is written to a log file (%TEMP%\MT_PropertyExchange_install.log).
+::  The window turns GREEN when everything succeeded, RED when something
+::  failed (the full log is then shown), and waits for ENTER before closing.
+::
+::  Expected payload layout (created by stage.bat from the build output):
+::     install.bat, uninstall.bat
+::     bin\   MT_PropertyExchange.exe, MT_PropertyExchangeDLL.dll, CommandLine.dll,
+::            Interop.Dsofile.dll, log4net.dll, MT_PropertyExchangeLog.config, ...
+::     x86\   dsofile.dll   (32-bit build)
+::     x64\   dsofile.dll   (64-bit build)
+::     test\  smoke tests and sample documents
+::
+::  Usage:
+::     install.bat               ... install + register + quick test
+::     install.bat /u            ... unregister + remove installation
+::     install.bat /unregister   ... unregister only
+::     install.bat /register     ... (re-)register only
+:: ==========================================================================
+
+set LOGFILE=%TEMP%\MT_PropertyExchange_install.log
+
+:: --------------------------------------------------------------------------
+:: Escape WOW64: when started from a 32-bit parent (e.g. the self-extracting
+:: installer stub), this script runs in a 32-bit cmd.exe where %ProgramFiles%
+:: means "Program Files (x86)" and System32 tools are silently redirected to
+:: their 32-bit versions. Relaunch ourselves in the real 64-bit cmd.exe.
+:: --------------------------------------------------------------------------
+if not defined PROCESSOR_ARCHITEW6432 goto bitness_ok
+if exist "%WINDIR%\sysnative\cmd.exe" "%WINDIR%\sysnative\cmd.exe" /c ""%~f0" %1" & exit /b
+:bitness_ok
 
 :: BatchGotAdmin
 :-------------------------------------
@@ -11,201 +49,402 @@ if "%errorlevel%"=="2" goto gotAdmin
 if NOT "%errorlevel%"=="0" goto UACPrompt
 goto gotAdmin
 
-
 :UACPrompt
     echo Requesting administrative privileges...
-    rem if exist "%temp%\mtpe.run" goto gotAdmin
-
+    rem Copy the payload to a stable folder first: when started from the
+    rem self-extracting installer the extraction folder disappears as soon
+    rem as this (non-elevated) instance returns.
+    set STAGE_DIR=%TEMP%\MTPE_Setup
+    rmdir /q /s "%STAGE_DIR%" 2>NUL
+    xcopy /E /I /Q /Y "%~dp0*" "%STAGE_DIR%\" >NUL
     echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
-    if "%1" == "" echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
-    if "%1" == "/u" echo UAC.ShellExecute "%~s0", "/u", "", "runas", 1 >> "%temp%\getadmin.vbs"
-    if "%1" == "/unregister" echo UAC.ShellExecute "%~s0", "/unregister", "", "runas", 1 >> "%temp%\getadmin.vbs"
-    if "%1" == "/register" echo UAC.ShellExecute "%~s0", "/register", "", "runas", 1 >> "%temp%\getadmin.vbs"
-    rem pause
+    if "%1" == "" echo UAC.ShellExecute "%STAGE_DIR%\install.bat", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
+    if "%1" == "/u" echo UAC.ShellExecute "%STAGE_DIR%\install.bat", "/u", "", "runas", 1 >> "%temp%\getadmin.vbs"
+    if "%1" == "/unregister" echo UAC.ShellExecute "%STAGE_DIR%\install.bat", "/unregister", "", "runas", 1 >> "%temp%\getadmin.vbs"
+    if "%1" == "/register" echo UAC.ShellExecute "%STAGE_DIR%\install.bat", "/register", "", "runas", 1 >> "%temp%\getadmin.vbs"
     "%temp%\getadmin.vbs"
     exit /B
-
 
 :gotAdmin
     if exist "%temp%\getadmin.vbs" ( del "%temp%\getadmin.vbs" )
     pushd "%CD%"
     CD /D "%~dp0"
-   
+
 :--------------------------------------
 :start
-   @echo off
    pushd "%~dp0"
-   set root=%CD%
-   mode con lines=80 cols=90
+   set INSTALL_ROOT=%CD%
+   set ERRORS=0
    color 8F
-   cls
-   
+
+   set BUILDINFO=unknown - built before build stamping was introduced
+   if exist "%INSTALL_ROOT%\build-info.txt" set /p BUILDINFO=<"%INSTALL_ROOT%\build-info.txt"
+
+    > "%LOGFILE%" echo ================================================================
+   >>"%LOGFILE%" echo  MT_PropertyExchange installer log
+   >>"%LOGFILE%" echo  Date ......: %DATE% %TIME%
+   >>"%LOGFILE%" echo  Build .....: %BUILDINFO%
+   >>"%LOGFILE%" echo  User ......: %USERNAME%   Computer: %COMPUTERNAME%
+   >>"%LOGFILE%" echo  Source ....: %INSTALL_ROOT%
+   >>"%LOGFILE%" echo  Argument ..: %1
+   >>"%LOGFILE%" echo  CmdBitness : PROCESSOR_ARCHITECTURE=%PROCESSOR_ARCHITECTURE% ARCHITEW6432=%PROCESSOR_ARCHITEW6432%
+   >>"%LOGFILE%" echo ================================================================
+   >>"%LOGFILE%" echo --- payload inventory (%INSTALL_ROOT%) ---
+   dir /s /b "%INSTALL_ROOT%" >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- end of payload inventory ---
+
    echo.
-   if "%1" == "" echo Installation of MT_PropertyExchange toolkit
-   if "%1" == "/u" echo Uninstall MT_PropertyExchange toolkit
-   if "%1" == "/unregister" echo Unregistering DLLs
-   if "%1" == "/register" echo Registering DLLs
+   if "%1" == "" call :log Installation of MT_PropertyExchange toolkit
+   if "%1" == "/u" call :log Uninstall MT_PropertyExchange toolkit
+   if "%1" == "/unregister" call :log Unregistering COM components
+   if "%1" == "/register" call :log Registering COM components
    echo.
-   
-   rem ******************************************************************************************
-   rem *    Allgemeine Parameter                                                                *
-   rem ******************************************************************************************
-   set INSTALL_PLM=\\atlnztfile01.ww300.siemens.net\apps600\SAPPLM\Install
-   set INSTALL_Root=%root%
 
-   set ARCH=x86
-   set SERVER_Vorlagen=\\ww300.siemens.net\DFSroot\info\OFFICE2K\VAI Projekte
-   set SERVER_DLLs=%INSTALL_Root%\%ARCH%
-   set SERVER_TESTs=%INSTALL_Root%\test
-   
-   for /f "tokens=5-8 delims=:., " %%a in ('echo/^|time') do ( set hh=%%a&set nn=%%b&set ss=%%c&set cs=%%d)
-
-  if exist "%WINDIR%\Microsoft.NET\Framework\v2.0.50727\regasm.exe" SET REGASM="%WINDIR%\Microsoft.NET\Framework\v2.0.50727\regasm.exe"
-  if exist "%WINDIR%\Microsoft.NET\Framework\v4.0.30319\regasm.exe" SET REGASM="%WINDIR%\Microsoft.NET\Framework\v4.0.30319\regasm.exe"
-
-   set CHOICE=%INSTALL_ROOT%\lib\choice.exe  
-   set CHOICEPARAM=/C:yn /T:n,5 
-   if exist %WINDIR%\system32\choice.exe (
-      set CHOICE=%WINDIR%\system32\choice.exe
-      set CHOICEPARAM=/C yn /T 5 /D n /M
-   )
-
-   if "%1"=="/u" goto switch
-   if "%1"=="/unregister" goto switch
-   if "%1"=="/register" goto switch
-
-REM    REM ==========================================================================================
-REM    echo Copy and register system dlls ...
-REM    SET DLL_TO_KILL=dsofile.dll
-REM    SET KILLER=
-REM :askkill
-REM    for /f "tokens=1-3 delims= " %%a in ('tasklist /M "%DLL_TO_KILL%*" /FO TABLE /NH 2^>NUL') do ( 
-REM      IF NOT DEFINED KILLER (
-REM        SET /P KILLER=%%a is locking %%c. Shall the process be killed [y/n]?
-REM      )
-REM      IF "!KILLER!"=="y" (
-REM        echo killing %%a...
-REM        TASKKILL /T /F /PID %%b 
-REM        goto askkill
-REM      )
-REM    ) 
-REM    SET KILLER=
-REM    for /f "tokens=1-3 delims= " %%a in ('tasklist /M "%DLL_TO_KILL%*" /FO TABLE /NH 2^>NUL') do (
-REM      COLOR C0
-REM      echo.
-REM      echo +================================================================================+
-REM      echo |                                                                                | 
-REM      echo |  Error: a process is still locking dsofile.dll. Installation cannot continue.  | 
-REM      echo |                                                                                | 
-REM      echo +================================================================================+
-REM      echo.
-REM      pause
-REM      exit
-REM    )
-   
-   if exist "%WINDIR%\syswow64\dsofile.dll" regsvr32 /s /u "%WINDIR%\syswow64\dsofile.dll"
-   if exist "%WINDIR%\syswow64\dsofile.dll" copy "%SERVER_DLLs%\dsofile.dll" "%WINDIR%\syswow64\dsofile.dll" /y >nul
-   if exist "%WINDIR%\syswow64\dsofile.dll" regsvr32 /s "%WINDIR%\syswow64\dsofile.dll"
-   if exist "%WINDIR%\syswow64\dsofile.dll" goto switch
-
-   if exist "%WINDIR%\system32\dsofile.dll" regsvr32 /s /u "%WINDIR%\system32\dsofile.dll"
-   if exist "%WINDIR%\system32\dsofile.dll" copy "%SERVER_DLLs%\dsofile.dll" "%WINDIR%\system32\dsofile.dll" /y >nul
-   if exist "%WINDIR%\system32\dsofile.dll" regsvr32 /s "%windir%\system32\dsofile.dll"
-   if exist "%WINDIR%\system32\dsofile.dll" goto switch
-
-REM ==========================================================================================
-:switch
-   if "%ARCH%"=="x86" goto inst_x86
-   if "%ARCH%"=="x64" goto inst_x64 
-
-:inst_x86
    set TARGET_DIR=%ProgramFiles%\Siemens\MT_PropertyExchange
-   goto common
+   set REGASM32=%WINDIR%\Microsoft.NET\Framework\v4.0.30319\regasm.exe
+   set REGASM64=%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\regasm.exe
+   set REGSVR_NATIVE=%WINDIR%\System32\regsvr32.exe
+   set REGSVR_WOW=%WINDIR%\SysWOW64\regsvr32.exe
 
-:inst_x64
-   set TARGET_DIR=%ProgramFiles(x86)%\Siemens\MT_PropertyExchange
-   goto common
+   set IS64=NO
+   if defined ProgramFiles(x86) set IS64=YES
+   call :log Target folder: "%TARGET_DIR%"  -  64-bit Windows: %IS64%
 
-REM ==========================================================================================
-:common
+   if exist "%REGASM32%" goto regasm32ok
+   set /a ERRORS+=1
+   call :log ERROR - 32-bit .NET Framework 4.x regasm.exe not found.
+:regasm32ok
+   if "%IS64%"=="NO" goto regasmchecked
+   if exist "%REGASM64%" goto regasmchecked
+   set /a ERRORS+=1
+   call :log ERROR - 64-bit .NET Framework 4.x regasm.exe not found.
+:regasmchecked
+
+   if "%1"=="/u" goto unreg
    if "%1"=="/unregister" goto unreg
    if "%1"=="/register" goto reg
+
+REM ==========================================================================
+REM  Full installation: unregister old state, copy files, register, test
+REM ==========================================================================
+:install
+   if exist "%INSTALL_ROOT%\bin\MT_PropertyExchange.exe" goto payloadok
+   set /a ERRORS+=1
+   call :log ERROR - installer payload is incomplete: "bin\MT_PropertyExchange.exe" not found.
+   call :log Run MTPropertyExchangeInstall\stage.bat after building, then retry.
+   goto summary
+:payloadok
+   if defined ProgramFiles(x86) if exist "%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" if /I not "%TARGET_DIR%"=="%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" call :log NOTE - an old installation exists in "Program Files (x86)\Siemens\MT_PropertyExchange". It is removed automatically after a successful installation.
+   rem Diagnostic: which running processes have toolkit modules loaded?
+   rem (Those processes would lock files and make copy/regasm steps fail.)
+   >>"%LOGFILE%" echo --- processes holding toolkit modules ---
+   tasklist /M MT_PropertyExchange* /FO TABLE >>"%LOGFILE%" 2>&1
+   tasklist /M Interop.Dsofile* /FO TABLE >>"%LOGFILE%" 2>&1
+   tasklist /M dsofile* /FO TABLE >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- end of process diagnostic ---
+   call :dounreg
+
+:copyfiles
+   echo.
+   if not exist "%TARGET_DIR%" goto docopy
+   rem The target folder already exists (previous installation, possibly a
+   rem mix of packages). Remove it completely so the installation is clean.
+   call :log Target folder already exists - removing it for a clean installation ...
+   rmdir /s /q "%TARGET_DIR%" 2>NUL
+   if not exist "%TARGET_DIR%" goto docopy
+   set /a ERRORS+=1
+   call :log ERROR - cannot remove the existing folder, files are in use. Close SAP, Word/Excel and other programs using the toolkit, then run the installer again. The log lists the locking processes.
+   goto summary
+:docopy
+   call :log Copying toolkit to "%TARGET_DIR%" ...
    mkdir "%TARGET_DIR%" 2>NUL
-
-:unreg
-   echo.
-   echo Unregistering type libraries ...
-   pushd "%TARGET_DIR%"
-   if exist MT_PropertyExchangeDLL.dll echo Unregistering MT_PropertyExchangeDLL.dll ...
-   if exist MT_PropertyExchangeDLL.dll %REGASM% MT_PropertyExchangeDLL.dll /codebase /tlb:MT_PropertyExchangeDLL.tlb /nologo /unregister
-   if exist dsofile.dll echo Unregistering dsofile.dll ...
-   if exist dsofile.dll regsvr32 /s /u dsofile.dll
-   popd
-   if "%1"=="/unregister" goto fine
-   if "%1"=="/u" goto uninstall
-
-:copy
-   echo.
-   echo Copying toolkit to %TARGET_DIR% ...
-   xcopy /Z /C /S /Y /V "%SERVER_DLLs%\*.*" "%TARGET_DIR%"
-   echo.
-   echo.
-   echo Checkup: Folder contents
-   for %%a in ("%TARGET_DIR%\*.*") do @echo    %%~nxa
-   echo.
-   echo Copying finished.
+   >>"%LOGFILE%" echo --- xcopy bin ---
+   xcopy /Y /F "%INSTALL_ROOT%\bin\*.*" "%TARGET_DIR%\" >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying program files failed - a file is probably in use. Close SAP, Word/Excel and other programs using the toolkit, then run the installer again. The log lists the locking processes.) else (call :log   OK - program files copied.)
+   rem Keep the emergency tools available on the installed machine.
+   copy /Y "%INSTALL_ROOT%\cleanup.bat" "%TARGET_DIR%\" >NUL 2>NUL
+   copy /Y "%INSTALL_ROOT%\rollback.bat" "%TARGET_DIR%\" >NUL 2>NUL
+   >>"%LOGFILE%" echo --- xcopy x86 ---
+   xcopy /Y /F /I "%INSTALL_ROOT%\x86\*.*" "%TARGET_DIR%\x86\" >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying x86 dsofile failed.) else (call :log   OK - x86 dsofile.dll copied.)
+   if "%IS64%"=="NO" goto copydone
+   >>"%LOGFILE%" echo --- xcopy x64 ---
+   xcopy /Y /F /I "%INSTALL_ROOT%\x64\*.*" "%TARGET_DIR%\x64\" >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - copying x64 dsofile failed.) else (call :log   OK - x64 dsofile.dll copied.)
+:copydone
+   >>"%LOGFILE%" echo --- installed files (%TARGET_DIR%) ---
+   dir /s /b "%TARGET_DIR%" >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- end of installed files ---
 
 :reg
    echo.
-   echo Registering type libraries ...
-   pushd "%TARGET_DIR%"
-   if exist dsofile.dll echo Register DSOFILE.DLL ...
-   if exist dsofile.dll regsvr32 /s dsofile.dll
-   echo.
-   if exist MT_PropertyExchangeDLL.dll echo Create MT_PropertyExchangeDLL.dll registry file ...
-   if exist MT_PropertyExchangeDLL.dll %REGASM% MT_PropertyExchangeDLL.dll /codebase /regfile:MT_PropertyExchangeDLL_%PROCESSOR_ARCHITECTURE%_%COMPUTERNAME%.reg /nologo
-   echo.
-   if exist MT_PropertyExchangeDLL.dll echo Register MT_PropertyExchangeDLL.dll ...
-   if exist MT_PropertyExchangeDLL.dll %REGASM% MT_PropertyExchangeDLL.dll /codebase /tlb:MT_PropertyExchangeDLL.tlb /nologo
-   echo.
-   popd
+   call :log Registering COM components ...
 
-   SET EXE="%TARGET_DIR%\MT_PropertyExchange.exe"
-   if "%1"=="/register" goto fine
+   if "%IS64%"=="NO" goto reg32only
 
-REM ==========================================================================================
-:log
-   2>NUL call %INSTALL_PLM%\Write_log.bat MT_PropertyTransfer Installation
+   rem ---- 64-bit Windows: register in BOTH registry views --------------------
+   if not exist "%TARGET_DIR%\x64\dsofile.dll" goto regdso64missing
+   >>"%LOGFILE%" echo --- regsvr32 x64 dsofile ---
+   "%REGSVR_NATIVE%" /s "%TARGET_DIR%\x64\dsofile.dll"
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - registering dsofile.dll x64 failed.) else (call :log   OK - dsofile.dll registered in 64-bit view.)
+   goto regdso32
+:regdso64missing
+   set /a ERRORS+=1
+   call :log   ERROR - x64\dsofile.dll missing. 64-bit clients cannot use .doc/.xls files.
 
-REM ==========================================================================================
+:regdso32
+   if not exist "%TARGET_DIR%\x86\dsofile.dll" goto regdso32missing
+   >>"%LOGFILE%" echo --- regsvr32 x86 dsofile ---
+   "%REGSVR_WOW%" /s "%TARGET_DIR%\x86\dsofile.dll"
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - registering dsofile.dll x86 failed.) else (call :log   OK - dsofile.dll registered in 32-bit view.)
+   goto regnet
+:regdso32missing
+   set /a ERRORS+=1
+   call :log   ERROR - x86\dsofile.dll missing. 32-bit clients cannot use .doc/.xls files.
+
+:regnet
+   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" goto regnetdo
+   set /a ERRORS+=1
+   call :log   ERROR - MT_PropertyExchangeDLL.dll not found in target folder.
+   goto regdone
+:regnetdo
+   rem Remove the previously exported type library first; if it is locked by
+   rem a running process, regasm would fail with a misleading access-denied.
+   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" del /q "%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" 2>NUL
+   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" call :log   WARNING - the existing type library file is locked by a running process. Close SAP and Office programs and run the installer again if the next steps fail.
+   >>"%LOGFILE%" echo --- regasm 64-bit ---
+   "%REGASM64%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - regasm 64-bit failed.) else (call :log   OK - MT_PropertyExchangeDLL registered in 64-bit view.)
+   >>"%LOGFILE%" echo --- regasm 32-bit ---
+   "%REGASM32%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - regasm 32-bit failed.) else (call :log   OK - MT_PropertyExchangeDLL registered in 32-bit view.)
+   goto regdone
+
+:reg32only
+   rem ---- 32-bit Windows ------------------------------------------------------
+   if not exist "%TARGET_DIR%\x86\dsofile.dll" goto reg32dsomissing
+   >>"%LOGFILE%" echo --- regsvr32 x86 dsofile ---
+   "%REGSVR_NATIVE%" /s "%TARGET_DIR%\x86\dsofile.dll"
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - registering dsofile.dll failed.) else (call :log   OK - dsofile.dll registered.)
+   goto reg32net
+:reg32dsomissing
+   set /a ERRORS+=1
+   call :log   ERROR - x86\dsofile.dll missing.
+:reg32net
+   if not exist "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" goto regdone
+   >>"%LOGFILE%" echo --- regasm 32-bit ---
+   "%REGASM32%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo >>"%LOGFILE%" 2>&1
+   if errorlevel 1 (set /a ERRORS+=1 & call :log   ERROR - regasm failed.) else (call :log   OK - MT_PropertyExchangeDLL registered.)
+
+:regdone
+   call :log Registration finished.
+   if "%1"=="/register" goto summary
+
+REM ==========================================================================
 :test
    echo.
-   echo Quick test: checking version.
+   call :log Quick test: COM activation check ...
    mkdir "%TARGET_DIR%\Test" 2>NUL
-   xcopy /q /S /Y /V "%SERVER_TESTS%\*.*" "%TARGET_DIR%\Test\" 1>nul 2>nul
-   call "%TARGET_DIR%\Test\test-com.bat"
-   IF "%ERRORLEVEL%"=="0" COLOR 2F
-   echo.
-   echo End of test.
-   goto fine
+   xcopy /Q /S /Y "%INSTALL_ROOT%\test\*.*" "%TARGET_DIR%\Test\" 1>nul 2>nul
+   call "%TARGET_DIR%\Test\test-com.bat" > "%TEMP%\mtpe_testcom.out" 2>&1
+   set TESTRC=%ERRORLEVEL%
+   type "%TEMP%\mtpe_testcom.out"
+   type "%TEMP%\mtpe_testcom.out" >> "%LOGFILE%"
+   del "%TEMP%\mtpe_testcom.out" 2>NUL
+   if "%TESTRC%"=="0" goto testok
+   set /a ERRORS+=1
+   call :log   ERROR - COM activation test FAILED. Running deep diagnostic ...
+   call :deepdiag
+   goto testdone
+:testok
+   call :log   OK - COM activation test passed.
+:testdone
+   if %ERRORS%==0 call :cleanup_legacy
+   goto summary
+
+REM ==========================================================================
+REM  Subroutine: when COM activation fails, load the DLL directly in a
+REM  64-bit and a 32-bit .NET process and write the FULL inner exception
+REM  chain to the log - the outer COM error (e.g. 0x80131534) hides it.
+REM ==========================================================================
+:deepdiag
+   >>"%LOGFILE%" echo --- deep diagnostic: direct .NET load, 64-bit ---
+   "%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "try { $a=[Reflection.Assembly]::LoadFrom('%TARGET_DIR%\MT_PropertyExchangeDLL.dll'); $t=$a.GetType('MT_PropertyExchange.Globals',$true); $o=[Activator]::CreateInstance($t); Write-Output ('OK - GetVersion returned ' + $t.GetMethod('GetVersion').Invoke($o,@())) } catch { $e=$_.Exception; while($e){ Write-Output ($e.GetType().FullName + ' :: ' + $e.Message); $e=$e.InnerException } }" >>"%LOGFILE%" 2>&1
+   if not exist "%WINDIR%\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" goto deepdiag_done
+   >>"%LOGFILE%" echo --- deep diagnostic: direct .NET load, 32-bit ---
+   "%WINDIR%\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "try { $a=[Reflection.Assembly]::LoadFrom('%TARGET_DIR%\MT_PropertyExchangeDLL.dll'); $t=$a.GetType('MT_PropertyExchange.Globals',$true); $o=[Activator]::CreateInstance($t); Write-Output ('OK - GetVersion returned ' + $t.GetMethod('GetVersion').Invoke($o,@())) } catch { $e=$_.Exception; while($e){ Write-Output ($e.GetType().FullName + ' :: ' + $e.Message); $e=$e.InnerException } }" >>"%LOGFILE%" 2>&1
+:deepdiag_done
+   >>"%LOGFILE%" echo --- registry state: CLSID in 64-bit view ---
+   reg query "HKLM\SOFTWARE\Classes\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /s /reg:64 >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- registry state: CLSID in 32-bit view ---
+   reg query "HKLM\SOFTWARE\Classes\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /s /reg:32 >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- registry state: per-user CLSID entries (all hives) ---
+   for /f "delims=" %%u in ('reg query HKU 2^>NUL') do (
+      reg query "%%u\Software\Classes\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /s >>"%LOGFILE%" 2>NUL
+      reg query "%%u\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /s >>"%LOGFILE%" 2>NUL
+   )
+   >>"%LOGFILE%" echo --- end of deep diagnostic ---
+   call :log   Deep diagnostic written to the log - send the log file for analysis.
+   goto :EOF
+
+REM ==========================================================================
+:unreg
+   call :dounreg
+   if "%1"=="/unregister" goto summary
+   if "%1"=="/u" goto uninstall
+   goto summary
 
 :uninstall
-   Echo Removing "%TARGET_DIR%" ...
-   if exist "%TARGET_DIR%" rmdir /q /s "%TARGET_DIR%" 
+   call :log Removing "%TARGET_DIR%" ...
+   if exist "%TARGET_DIR%" rmdir /q /s "%TARGET_DIR%" >>"%LOGFILE%" 2>&1
+   if exist "%TARGET_DIR%" (set /a ERRORS+=1 & call :log   ERROR - could not remove target folder, files may be in use.) else (call :log   OK - target folder removed.)
+   rem Remove the compatibility junction at the old x86 path, if present.
+   rem rmdir without /s deletes only a junction or an empty folder - a real
+   rem legacy folder with content is deliberately left alone.
+   if defined ProgramFiles(x86) rmdir /q "%ProgramFiles(x86)%\Siemens\MT_PropertyExchange" 2>NUL
+   goto summary
 
-:fine
+REM ==========================================================================
+REM  Subroutine: unregister everything (current and legacy locations).
+REM  Failures here are logged but NOT counted as errors - on a first
+REM  installation there is simply nothing to unregister.
+REM ==========================================================================
+:dounreg
    echo.
-   echo Done. This window will close in a few seconds...
-   %CHOICE% %CHOICEPARAM% "..." >NUL 2>NUL
+   call :log Unregistering COM components of previous installations ...
+   >>"%LOGFILE%" echo --- unregister pass ---
+
+   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" if exist "%REGASM32%" "%REGASM32%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo /unregister >>"%LOGFILE%" 2>&1
+   if "%IS64%"=="NO" goto dounreg_dso
+   if exist "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" if exist "%REGASM64%" "%REGASM64%" "%TARGET_DIR%\MT_PropertyExchangeDLL.dll" /codebase /tlb:"%TARGET_DIR%\MT_PropertyExchangeDLL.tlb" /nologo /unregister >>"%LOGFILE%" 2>&1
+
+:dounreg_dso
+   rem new locations
+   if exist "%TARGET_DIR%\x86\dsofile.dll" "%REGSVR_WOW%" /s /u "%TARGET_DIR%\x86\dsofile.dll" 2>NUL
+   if exist "%TARGET_DIR%\x64\dsofile.dll" "%REGSVR_NATIVE%" /s /u "%TARGET_DIR%\x64\dsofile.dll" 2>NUL
+   if "%IS64%"=="YES" goto dounreg_legacy
+   if exist "%TARGET_DIR%\x86\dsofile.dll" "%REGSVR_NATIVE%" /s /u "%TARGET_DIR%\x86\dsofile.dll" 2>NUL
+
+:dounreg_legacy
+   rem legacy location: dsofile.dll flat in the target dir (old installer)
+   if exist "%TARGET_DIR%\dsofile.dll" "%REGSVR_NATIVE%" /s /u "%TARGET_DIR%\dsofile.dll" 2>NUL
+   if "%IS64%"=="YES" if exist "%TARGET_DIR%\dsofile.dll" "%REGSVR_WOW%" /s /u "%TARGET_DIR%\dsofile.dll" 2>NUL
+
+   rem Old installations sometimes placed the DLL into the GAC (the legacy
+   rem package shipped gacutil.exe). A GAC copy always wins over the
+   rem registered codebase and hijacks the COM load with a stale build -
+   rem symptom: CreateObject fails with 0x80131534 in one bitness only.
+   >>"%LOGFILE%" echo --- GAC inventory BEFORE purge (empty = machine was clean) ---
+   dir /s /b "%WINDIR%\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1
+   dir /s /b "%WINDIR%\Microsoft.NET\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- GAC purge ---
+   if exist "%INSTALL_ROOT%\lib\gacutil.exe" "%INSTALL_ROOT%\lib\gacutil.exe" /nologo /u MT_PropertyExchangeDLL >>"%LOGFILE%" 2>&1
+   powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.EnterpriseServices; $p=New-Object System.EnterpriseServices.Internal.Publish; Get-ChildItem 'C:\Windows\Microsoft.NET\assembly','C:\Windows\assembly' -Recurse -Filter 'MT_PropertyExchangeDLL.dll' -ErrorAction SilentlyContinue | ForEach-Object { $p.GacRemove($_.FullName) }" >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- GAC inventory AFTER purge (must be empty) ---
+   dir /s /b "%WINDIR%\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1
+   dir /s /b "%WINDIR%\Microsoft.NET\assembly\*MT_PropertyExchange*" >>"%LOGFILE%" 2>&1
+   >>"%LOGFILE%" echo --- end of GAC section ---
+   call :log GAC checked - stale GAC copies of MT_PropertyExchangeDLL removed if present.
+
+   rem Per-USER COM registrations (created by running regasm without admin
+   rem rights) shadow the machine-wide registration for that user, usually
+   rem in one bitness view only. Remove them for ALL loaded user hives -
+   rem only our own GUID/ProgID, nothing else.
+   >>"%LOGFILE%" echo --- per-user registration purge ---
+   for /f "delims=" %%u in ('reg query HKU 2^>NUL') do (
+      reg query "%%u\Software\Classes\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" >NUL 2>NUL && >>"%LOGFILE%" echo FOUND stale per-user CLSID in %%u - removing
+      reg delete "%%u\Software\Classes\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+      reg delete "%%u\Software\Classes\Wow6432Node\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+      reg delete "%%u\Software\Classes\MT_PropertyExchange.Globals" /f >NUL 2>NUL
+      reg query "%%u\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" >NUL 2>NUL && >>"%LOGFILE%" echo FOUND stale per-user CLSID in %%u classes-hive - removing
+      reg delete "%%u\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+      reg delete "%%u\Wow6432Node\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+      reg delete "%%u\MT_PropertyExchange.Globals" /f >NUL 2>NUL
+   )
+   >>"%LOGFILE%" echo --- end of per-user purge ---
+   call :log Per-user registrations checked and removed if present.
+
+   rem Orphaned DllSurrogate keys of the old x64 workaround - remove them in
+   rem every run, not only after a fully successful installation.
+   reg delete "HKCR\Wow6432Node\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /v AppID /f >NUL 2>NUL
+   reg delete "HKCR\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /v AppID /f >NUL 2>NUL
+   reg delete "HKCR\Wow6432Node\AppID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+   reg delete "HKLM\Software\Classes\AppID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+   call :log Unregister pass finished.
+   goto :EOF
+
+REM ==========================================================================
+REM  Subroutine: after a fully successful installation, remove leftovers of
+REM  previous installations: the obsolete folder in the other Program Files
+REM  location (all registry entries already point to the new folder) and the
+REM  orphaned DllSurrogate/AppID keys of the abandoned x64 registry hack.
+REM  Deliberately NOT removed: dsofile.dll copies in Windows\System32 or
+REM  SysWOW64 from very old installers - DSOFile was a shared Microsoft
+REM  component and other software may still reference those files.
+REM ==========================================================================
+:cleanup_legacy
+   echo.
+   call :log Cleaning up leftovers of previous installations ...
+   set LEGACY_DIR=
+   if defined ProgramFiles(x86) set LEGACY_DIR=%ProgramFiles(x86)%\Siemens\MT_PropertyExchange
+   if not defined LEGACY_DIR goto cleanup_reg
+   if /I "%LEGACY_DIR%"=="%TARGET_DIR%" goto cleanup_reg
+   if not exist "%LEGACY_DIR%" goto cleanup_link
+   call :log   Removing obsolete folder "%LEGACY_DIR%" ...
+   rmdir /s /q "%LEGACY_DIR%" 2>NUL
+   if exist "%LEGACY_DIR%" goto cleanup_locked
+   call :log   OK - obsolete folder removed.
+:cleanup_link
+   rem Compatibility link: any old hard-coded reference to the (x86) path,
+   rem e.g. in SAP customizing or scripts, keeps working via a junction
+   rem that points to the real installation folder.
+   mklink /J "%LEGACY_DIR%" "%TARGET_DIR%" >NUL 2>NUL
+   if exist "%LEGACY_DIR%\MT_PropertyExchange.exe" (call :log   OK - compatibility link created: the old x86 path now points to the new folder.) else (call :log   NOTE - compatibility link could not be created; old hard-coded x86 paths would not work.)
+   goto cleanup_reg
+:cleanup_locked
+   call :log   WARNING - could not remove it completely, files may be locked. Delete it manually.
+:cleanup_reg
+   rem Orphaned keys of the old DllSurrogate workaround, harmless if absent.
+   reg delete "HKCR\Wow6432Node\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /v AppID /f >NUL 2>NUL
+   reg delete "HKCR\CLSID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /v AppID /f >NUL 2>NUL
+   reg delete "HKCR\Wow6432Node\AppID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+   reg delete "HKLM\Software\Classes\AppID\{41A13AC0-103B-40EC-9A52-AEE2C6C846C6}" /f >NUL 2>NUL
+   call :log   OK - obsolete DllSurrogate registry entries removed - if any were present.
+   call :log Cleanup finished.
+   goto :EOF
+
+REM ==========================================================================
+REM  Subroutine: write a line to screen AND log file
+REM ==========================================================================
+:log
+   echo %*
+   >>"%LOGFILE%" echo %*
+   goto :EOF
+
+REM ==========================================================================
+:summary
+   echo.
+   echo ================================================================
+   if %ERRORS%==0 goto sum_ok
+   color CF
+   call :log RESULT: FAILED - %ERRORS% error/s occurred.
+   echo ================================================================
+   echo.
+   echo -------- full log --------
+   type "%LOGFILE%"
+   echo --------------------------
+   goto sum_end
+:sum_ok
+   color 2F
+   call :log RESULT: SUCCESS - all steps completed without errors.
+   echo ================================================================
+:sum_end
+   echo.
+   echo The full log was saved to:
+   echo    %LOGFILE%
+   echo.
+   set /p DUMMY=Press ENTER to close this window ...
    popd 2>NUL
 
 :ende
 popd 2>NUL
-if exist "%temp%\MTPropertyExchangeInstall" (
-   pushd %temp% 2>NUL
-   xcopy /s /q "%temp%\MTPropertyExchangeInstall" "%temp%\MTPropertyExchangeInstall-%date%-%hh%-%nn%-%ss%\" 1>NUL 2>NUL
-   popd 2>NUL
-   rmdir /Q /S "%temp%\MTPropertyExchangeInstall" 1>NUL 2>NUL
-)
-
-:endoffile

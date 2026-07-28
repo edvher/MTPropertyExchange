@@ -11,7 +11,7 @@
     <AssemblyName>MT_PropertyExchangeDLL</AssemblyName>
     <FileAlignment>512</FileAlignment>
     <MyType>Windows</MyType>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <OptionExplicit>On</OptionExplicit>
     <OptionCompare>Binary</OptionCompare>
     <OptionStrict>Off</OptionStrict>
@@ -98,12 +98,8 @@
   <ItemGroup>
     <Reference Include="Interop.Dsofile, Version=2.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\lib\x86\Interop.Dsofile.dll</HintPath>
+      <HintPath>..\lib\Interop.Dsofile.dll</HintPath>
       <Private>True</Private>
-    </Reference>
-    <Reference Include="log4net, Version=1.2.11.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\lib\log4net.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Office.Interop.Excel, Version=11.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c">
       <SpecificVersion>False</SpecificVersion>
@@ -200,9 +196,19 @@
     <Content Include="Temporary.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="lib\" />
+    <PackageReference Include="log4net">
+      <Version>2.0.15</Version>
+    </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
+  <!-- The interop assembly for the native dsofile COM component is generated
+       from the checked-in type library on first build. It must be signed with
+       the dsofile key because this assembly is strong-named. -->
+  <Target Name="GenerateDsofileInterop" BeforeTargets="ResolveAssemblyReferences" Condition="!Exists('$(MSBuildProjectDirectory)\..\lib\Interop.Dsofile.dll')">
+    <Error Condition="'$(TargetFrameworkSDKToolsDirectory)' == ''" Text="tlbimp.exe not found (TargetFrameworkSDKToolsDirectory is empty). Generate ..\lib\Interop.Dsofile.dll manually from a VS Developer Command Prompt: tlbimp Dsofile\Lib\dsofile.tlb /keyfile:Dsofile\dsofile_key.snk /namespace:dsofile /out:lib\Interop.Dsofile.dll" />
+    <MakeDir Directories="$(MSBuildProjectDirectory)\..\lib" />
+    <Exec Command="&quot;$(TargetFrameworkSDKToolsDirectory)tlbimp.exe&quot; /nologo &quot;$(MSBuildProjectDirectory)\..\Dsofile\Lib\dsofile.tlb&quot; /keyfile:&quot;$(MSBuildProjectDirectory)\..\Dsofile\dsofile_key.snk&quot; /namespace:dsofile /out:&quot;$(MSBuildProjectDirectory)\..\lib\Interop.Dsofile.dll&quot;" />
+  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
@@ -210,20 +216,4 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-  <PropertyGroup>
-    <PostBuildEvent>if "$(ConfigurationName)"=="Debug" goto ende
-
-IF "$(PlatformName)"=="Win32" (
-   IF "%25PROCESSOR_ARCHITECTURE%25"=="x86" (
-      xcopy /Y "$(SolutionDir)\lib\x86\*.*" $(TargetPath)
-   )
-)
-IF "$(PlatformName)"=="x64" (
-   IF "%25PROCESSOR_ARCHITECTURE%25"=="x64" (
-      xcopy /Y "$(SolutionDir)\lib\x64\*.*" $(TargetPath)
-   )
-)
-
-:ende</PostBuildEvent>
-  </PropertyGroup>
 </Project>
