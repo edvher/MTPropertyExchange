@@ -14,8 +14,14 @@ source extract analysed during the 64-bit migration.*
 2. **Property reading** — `FORM office_properties` calls function modules
    `Z_GETDOC_PROPERTIES` (read) and `Z_UPDATE_FILEPROPERTIES_FILE`
    (write-back, when *Insert/Change Properties* is ticked). These function
-   modules wrap the COM DLL. Reading is per-property (the `ReadProperty`
-   path), not via the XML round-trip.
+   modules wrap the COM DLL. `Z_GETDOC_PROPERTIES` returns ALL properties
+   as a table (`et_props`) — i.e. it uses the bulk path
+   (`GetAllCusProperties`, XML round-trip inside the DLL). Consequence: if
+   that call fails, the FM returns an **empty table** and every validation
+   downstream sees empty values (blank project code warning, "VAI Document
+   type is missing", degenerated SCS). Exactly this happened with the BOM
+   regression fixed in commit `8ce0baf` — seemingly "business" errors were
+   in fact a silent read failure.
 3. **Validations** — `FORM check_scs_testrun` (+ helpers) validate the
    values read from the file against the transaction input and the
    customizing tables, then `check_scs_other_dokar` checks SCS uniqueness
